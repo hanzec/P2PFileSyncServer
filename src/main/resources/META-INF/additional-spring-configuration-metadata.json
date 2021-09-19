@@ -1,0 +1,53 @@
+{
+  "properties": [
+    {
+      "name": "account.security.PBKDF2Count",
+      "type": "java.lang.String",
+      "description": "Description for account.security.PBKDF2Count."
+    },
+    {
+      "name": "account.security.token.accesstoken.expiretime",
+      "type": "java.lang.String",
+      "description": "Description for account.security.token.accesstoken.expiretime."
+    },
+    {
+      "name": "account.security.token.authtoken.expiretime",
+      "type": "java.lang.String",
+      "description": "Description for account.security.token.authtoken.expiretime."
+    },
+    {
+      "name": "account.security.saltLength",
+      "type": "java.lang.String",
+      "description": "Description for account.security.saltLength."
+    },
+    {
+      "name": "spring.datasource.user.driver-class-name",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.user.driver-class-name."
+    },
+    {
+      "name": "spring.datasource.user.jdbc-ur",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.user.jdbc-ur."
+    },
+    {
+      "name": "account.security.token.redis_perfix",
+      "type": "java.lang.String",
+      "description": "Description for account.security.token.redis_perfix."
+    },
+    {
+      "name": "spring.datasource.user.jdbc-url",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.user.jdbc-url."
+    },
+    {
+      "name": "spring.datasource.file.driver-class-name",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.file.driver-class-name."
+    },
+    {
+      "name": "spring.datasource.file.jdbc-url",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.file.jdbc-url."
+    }
+  ] }

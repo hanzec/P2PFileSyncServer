@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PersistenceUnitSettings">
+    <persistence-units>
+      <persistence-unit name="File">
+        <entities>
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.file.FileBlock" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.file.DataBlock" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.file.FileDatabase" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.file.INode" />
+        </entities>
+      </persistence-unit>
+      <persistence-unit name="User">
+        <entities>
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.User" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.auth.Token" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.Group" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.auth.Permission" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.auth.Role" />
+        </entities>
+      </persistence-unit>
+    </persistence-units>
+  </component>
+</project>

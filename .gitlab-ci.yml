@@ -1,0 +1,177 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+include:
+  - template: Code-Quality.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+stages:
+- Build
+- Test
+- BuildImage
+- Review
+- Production
+- Performance
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+build_java_package:
+  stage: Build
+  image: azul/zulu-openjdk:16
+  before_script:
+  - export GRADLE_USER_HOME=`pwd`/.gradle
+  script:
+  - chmod +x ./gradlew
+  - "./gradlew wrapper"
+  - "./gradlew build"
+  artifacts:
+    expire_in: 1 week
+    paths:
+    - build/libs/sync-disk.jar
+build_images:
+  image: docker:18
+  stage: BuildImage
+  services:
+  - name: docker:dind
+  before_script:
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+  script:
+  - docker pull $CI_REGISTRY_IMAGE:latest || true
+  - 'docker build --pull --build-arg VCS_REF=$CI_COMMIT_SHA --build-arg VCS_URL=$CI_PROJECT_URL
+    --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    .
+
+'
+  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+push_latest_images:
+  image: docker:18
+  stage: BuildImage
+  services:
+  - docker:dind
+  before_script:
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+  variables:
+    GIT_STRATEGY: none
+  only:
+  - master
+  script:
+  - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:latest
+  - docker push $CI_REGISTRY_IMAGE:latest
+push_images_with_tag:
+  image: docker:18
+  stage: BuildImage
+  services:
+  - docker:dind
+  before_script:
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+  variables:
+    GIT_STRATEGY: none
+  only:
+  - tags
+  script:
+  - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+deploy_review:
+  image: bitnami/kubectl
+  stage: Review
+  only:
+  - branches
+  except:
+  - tags
+  - master
+  environment:
+    name: syncdisk-dev
+    url: https://$CI_ENVIRONMENT_SLUG.hanzec.dev
+    on_stop: stop_review
+  script:
+  - kubectl version
+  - cd manifests/
+  - sed -i "s/__VERSION__/${CI_COMMIT_SHA}/" deployment.yaml
+  - sed -i "s/__DATABASE_USERNAME__/${DATABASE_USERNAME}/" config.yaml
+  - sed -i "s/__DATABASE_PASSWORD__/${DATABASE_PASSWORD}/" config.yaml
+  - sed -i "s/__CI_PROJECT_PATH_SLUG__/${CI_PROJECT_PATH_SLUG}/" deployment.yaml
+  - sed -i "s/__CI_ENVIRONMENT_SLUG__/${CI_ENVIRONMENT_SLUG}/" deployment.yaml ingress_stag.yaml
+    service.yaml
+  - kubectl apply -f config.yaml
+  - kubectl create secret docker-registry registry --docker-server="https://registry.hanzec.com/"
+    --docker-username=$DEPLOY_USERNAME --docker-password=$DEPLOY_PASSWORD --dry-run=client
+    -o yaml | kubectl apply -f -
+  - |
+    if kubectl apply -f deployment.yaml | grep -q unchanged; then
+        echo "=> Patching deployment to force image update."
+        kubectl patch -f deployment.yaml -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"ci-last-updated\":\"$(date +'%s')\"}}}}}"
+    else
+        echo "=> Deployment apply has changed the object, no need to force image update."
+    fi
+  - kubectl apply -f service.yaml || true
+  - kubectl apply -f ingress_stag.yaml
+  - kubectl rollout status -f deployment.yaml
+  - kubectl get all,ing -l ref=${CI_ENVIRONMENT_SLUG}
+stop_review:
+  image: bitnami/kubectl
+  stage: Review
+  variables:
+    GIT_STRATEGY: none
+  when: manual
+  only:
+  - branches
+  except:
+  - master
+  - tags
+  environment:
+    name: syncdisk-dev
+    action: stop
+  script:
+  - kubectl version
+  - kubectl delete ing -l ref=${CI_ENVIRONMENT_SLUG}
+  - kubectl delete all -l ref=${CI_ENVIRONMENT_SLUG}
+deploy_live:
+  image: bitnami/kubectl
+  stage: Production
+  environment:
+    name: syncdisk
+    url: https://${CI_ENVIRONMENT_SLUG}.hanzec.com
+  only:
+  - tags
+  - master
+  when: manual
+  script:
+  - kubectl version
+  - cd manifests/
+  - sed -i "s/__VERSION__/${CI_COMMIT_REF_NAME}/" deployment.yaml
+  - sed -i "s/__DATABASE_USERNAME__/${DATABASE_USERNAME}/" config.yaml
+  - sed -i "s/__DATABASE_PASSWORD__/${DATABASE_PASSWORD}/" config.yaml
+  - sed -i "s/__CI_PROJECT_PATH_SLUG__/${CI_PROJECT_PATH_SLUG}/" deployment.yaml
+  - sed -i "s/__CI_ENVIRONMENT_SLUG__/${CI_ENVIRONMENT_SLUG}/" deployment.yaml ingress_prod.yaml
+    service.yaml
+  - kubectl apply -f config.yaml
+  - kubectl create secret docker-registry registry --docker-server=https://registry.hanzec.com/
+    --docker-username=$DEPLOY_USERNAME --docker-password=$DEPLOY_PASSWORD --dry-run=client
+    -o yaml | kubectl apply -f -
+  - kubectl apply -f deployment.yaml
+  - kubectl apply -f service.yaml
+  - kubectl apply -f ingress_stag.yaml
+  - kubectl rollout status -f deployment.yaml
+  - kubectl get all,ing -l ref=${CI_ENVIRONMENT_SLUG}
+sast:
+  stage: Test
+
+code_quality:
+  stage: Test
+  variables:
+    CODE_QUALITY_IMAGE: "registry.example.com/codequality-fork:latest"
+
+secret_detection:
+  stage: Test
+  variables:
+    SECRET_DETECTION_HISTORIC_SCAN: "true"

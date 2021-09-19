@@ -1,0 +1,39 @@
+server:
+  port: 8081
+
+account:
+  security:
+    PBKDF2Count: 1000
+    saltLength: 8
+    token:
+      redis_perfix: "sync_disk"
+spring:
+  redis:
+    host: redis
+    port: 6379
+    timeout: 3s
+  jpa:
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: create
+        cache:
+          region:
+            use_second_level_cache: true
+            region.factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+            use_query_cache: true
+        ddl-auto: create
+        default_schema: public
+        enable_lazy_load_no_trans: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: true
+  datasource:
+    user:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: jdbc:postgresql://postgres:5432/p2p_sync_disk_user
+    file:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: jdbc:postgresql://postgres:5432/p2p_sync_disk_file
+  mvc:
+    converters:
+      preferred-json-mapper: gson

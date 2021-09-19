@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sync-disk-server
+  labels:
+    app: sync-disk-server
+    ref: __CI_ENVIRONMENT_SLUG__
+  annotations:
+    app.gitlab.com/app: __CI_PROJECT_PATH_SLUG__
+    app.gitlab.com/env: __CI_ENVIRONMENT_SLUG__
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sync-disk-server
+      ref: __CI_ENVIRONMENT_SLUG__
+  template:
+    metadata:
+      labels:
+        app: sync-disk-server
+        ref: __CI_ENVIRONMENT_SLUG__
+      annotations:
+        app.gitlab.com/app: __CI_PROJECT_PATH_SLUG__
+        app.gitlab.com/env: __CI_ENVIRONMENT_SLUG__
+    spec:
+      containers:
+        - name: sync-disk-server
+          image: registry.hanzec.com/sync_disk/sync_disk_server:__VERSION__
+          env:
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: DATABASE_PASSWORD
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: DATABASE_USERNAME
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+      imagePullSecrets:
+        - name: registry
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
