@@ -4,15 +4,16 @@ import lombok.Getter;
 
 import javax.persistence.*;
 import java.time.ZonedDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 @Entity
 @Table(name = "inode")
-public class INode {
+public class Inode {
     @Id @Column(name = "inode_path")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer inodePath;
+    private String path;
 
     @Getter
     private ZonedDateTime atime;
@@ -37,8 +38,8 @@ public class INode {
             name="parent_inode",
             referencedColumnName = "inode_path"
     )
-    private INode parentInode;
+    private Inode parentInode;
 
-    @OneToMany(mappedBy="inodePath",cascade={CascadeType.ALL})
-    private List<INode> subInode;
+    @OneToMany(mappedBy="path",cascade={CascadeType.ALL})
+    private Set<Inode> subInode = new HashSet<>();
 }

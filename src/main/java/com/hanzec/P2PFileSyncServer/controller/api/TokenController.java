@@ -1,7 +1,7 @@
 package com.hanzec.P2PFileSyncServer.controller.api;
 
 import com.hanzec.P2PFileSyncServer.model.api.Response;
-import com.hanzec.P2PFileSyncServer.model.data.manage.auth.Token;
+import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserToken;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.TokenNotFoundException;
 import com.hanzec.P2PFileSyncServer.service.TokenService;
 import io.swagger.annotations.Api;
@@ -44,10 +44,9 @@ public class TokenController {
                                 @PathVariable String tokenID) throws TokenNotFoundException {
         Response response = new Response();
 
-        Token token = tokenService.getTokenObject(UUID.fromString(principal.getName()),
-                                                      UUID.fromString(tokenID));
-        if(token != null) {
-            tokenService.delete(token);
+        UserToken userToken = tokenService.getTokenObject(UUID.fromString(tokenID),principal.getName());
+        if(userToken != null) {
+            tokenService.delete(userToken);
             return response;
         }else{
             throw new TokenNotFoundException(tokenID);

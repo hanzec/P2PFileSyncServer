@@ -11,6 +11,9 @@
 .springBeans
 .sts4-cache
 
+### Server Auto Generated ###
+config
+
 ### Gradle ###
 target/
 build/

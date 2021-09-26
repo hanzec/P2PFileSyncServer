@@ -1,6 +1,7 @@
 package com.hanzec.P2PFileSyncServer;
 
 import com.hanzec.P2PFileSyncServer.config.params.TrueStoreConfigParams;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,6 +10,7 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
 
 import javax.annotation.PostConstruct;
 import java.io.File;
+import java.security.Security;
 
 @SpringBootApplication
 @EnableRedisHttpSession
@@ -21,6 +23,11 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
+    @PostConstruct
+    void SettingSecurityProvider(){
+        Security.addProvider(new BouncyCastleProvider());
+
+    }
 
     @PostConstruct
     void TrueStoreConfig() {

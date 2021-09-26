@@ -1,102 +1,109 @@
 package com.hanzec.P2PFileSyncServer.service;
 
-
 import com.hanzec.P2PFileSyncServer.config.params.TrueStoreConfigParams;
-import com.sun.jarsigner.ContentSigner;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.asn1.x509.Certificate;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.asn1.x509.X509CertificateStructure;
-import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
-import org.bouncycastle.jcajce.provider.asymmetric.x509.CertificateFactory;
+import com.hanzec.P2PFileSyncServer.utils.X509CertificateUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-
-import javax.annotation.PreDestroy;
 import java.io.*;
-import java.math.BigInteger;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Security;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Date;
-
 
 @Service
 public class CertifiedService {
     private final KeyStore keys;
+    private final PrivateKey urlSignPrivateKey;
+    private final PrivateKey clientSignPrivateKey;
+    private final X509Certificate urlSignCertificate;
+    private final X509Certificate clientSignCertificate;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    CertifiedService(TrueStoreConfigParams params) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
-        keys = KeyStore.getInstance("JSK");
-        Security.addProvider(new BouncyCastleProvider());
+    CertifiedService(TrueStoreConfigParams params) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, OperatorCreationException, UnrecoverableEntryException, SignatureException, IOException {
+        Path truthStoragePath = Paths.get(params.getTrustStorePath());
 
-        try{
-            keys.load(new FileInputStream(params.getKeyStorePath()), params.getTrustStorePassword().toCharArray());
-        }catch (FileNotFoundException e){
-            logger.warn("KeyStore file [" + params.getKeyStorePath() + "] not found, will generated instead!");
-            keys.load(null,null);
-            keys.
+        Security.addProvider(new BouncyCastleProvider());
+        keys = KeyStore.getInstance("BKS", "BC");
+        var password = new KeyStore.PasswordProtection(params.getTrustStorePassword().toCharArray());
+
+        // if key store file not existed
+        try {
+            keys.load(new FileInputStream(truthStoragePath.toAbsolutePath().toString()), params.getTrustStorePassword().toCharArray());
+            logger.info("loading certificate from [" + truthStoragePath.toAbsolutePath() + "]");
+        } catch (IOException e) {
+            // if keyStore not found then need to do load first
+            keys.load(null, null);
+
+            // if folders not existed
+            if(!Files.exists(truthStoragePath)){
+                Files.createDirectories(truthStoragePath.getParent());
+                logger.warn("truth store folder not found in [" + truthStoragePath.toAbsolutePath() + "], will create instead!");
+            }
         }
 
-    }
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(4096);
 
-    /**
-     * Function handles when CertifiedService are exited
-     * @param params
-     * @throws IOException when keystore cannot write current keystore to disk
-     * @throws CertificateException
-     * @throws KeyStoreException
-     * @throws NoSuchAlgorithmException when algorithm can not save to keystore
-     */
-    @PreDestroy
-    private void shutdownService(TrueStoreConfigParams params) throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
-        keys.store(new FileOutputStream(params.getKeyStorePath()),params.getTrustStorePassword().toCharArray());
-    }
+        boolean regenerateFlag = true;
+        PrivateKey rootPrivate;
+        X509Certificate rootCertificate;
 
-    public Certificate issueNewCertificates() throws NoSuchAlgorithmException, IOException {
-        AlgorithmIdentifier sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder()
-                .find("SHA1withRSA");
-        AlgorithmIdentifier digAlgId = new DefaultDigestAlgorithmIdentifierFinder()
-                .find(sigAlgId);
+        // check root certificate
+        if (keys.isKeyEntry("ROOT_CERTIFICATE")) {
+            var rootCertificatePair = (KeyStore.PrivateKeyEntry) keys.getEntry("ROOT_CERTIFICATE", password);
+            rootPrivate = rootCertificatePair.getPrivateKey();
+            rootCertificate = (X509Certificate) rootCertificatePair.getCertificate();
+            logger.debug("ROOT Certificate: \n " + rootCertificate.toString());
+        } else {
+            logger.warn("Failed looking for root certificate, will generate instead!");
+            regenerateFlag = false;
+            KeyPair keypair = keyPairGenerator.generateKeyPair();
 
-        AsymmetricKeyParameter foo = PrivateKeyFactory.createKey(caPrivate
-                .getEncoded());
-        SubjectPublicKeyInfo keyInfo = SubjectPublicKeyInfo.getInstance(pair
-                .getPublic().getEncoded());
+            rootPrivate = keypair.getPrivate();
+            rootCertificate = X509CertificateUtils.generateSelfSignedX509Certificate(
+                    10, 0, 0, "CN=P2P_FILE_SYNC_ROOT_CERTIFICATE", keypair);
+            keys.setEntry(
+                    "ROOT_CERTIFICATE",
+                    new KeyStore.PrivateKeyEntry(keypair.getPrivate(), new X509Certificate[]{rootCertificate}), password);
+        }
 
-        PKCS10CertificationRequestHolder pk10Holder = new PKCS10CertificationRequestHolder(inputCSR);
-        //in newer version of BC such as 1.51, this is
-        //PKCS10CertificationRequest pk10Holder = new PKCS10CertificationRequest(inputCSR);
+        // get certificate for sign url
+        if (keys.isKeyEntry("URL_CERTIFICATE") && regenerateFlag) {
+            var urlCertificatePair = (KeyStore.PrivateKeyEntry) keys.getEntry("URL_CERTIFICATE", password);
+            urlSignPrivateKey = urlCertificatePair.getPrivateKey();
+            urlSignCertificate = (X509Certificate) urlCertificatePair.getCertificate();
+            logger.debug("URL Sign Certificate: \n " + urlSignCertificate.toString());
+        }else{
+            logger.warn("Failed looking for url sign certificate, will generate instead!");
 
-        X509v3CertificateBuilder myCertificateGenerator = new X509v3CertificateBuilder(
-                new X500Name("CN=issuer"), new BigInteger("1"), new Date(
-                System.currentTimeMillis()), new Date(
-                System.currentTimeMillis() + 30 * 365 * 24 * 60 * 60
-                        * 1000), pk10Holder.getSubject(), keyInfo);
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+            urlSignPrivateKey = keyPair.getPrivate();
+            urlSignCertificate = X509CertificateUtils.generateSignedX509Certificate(
+                    10, 0, 0, "CN=P2P_FILE_SYNC_URL_SIGN_CERTIFICATE", keyPair, rootCertificate, rootPrivate);
+            keys.setEntry("URL_CERTIFICATE", new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new X509Certificate[]{rootCertificate}), password);
+        }
 
-        ContentSigner sigGen = new BcRSAContentSignerBuilder(sigAlgId, digAlgId)
-                .build(foo);
+        // get certificate for sign client cert
+        if(keys.isKeyEntry("CLIENT_CERTIFICATE") && regenerateFlag){
+            var clientSignCertificatePair = (KeyStore.PrivateKeyEntry) keys.getEntry("CLIENT_CERTIFICATE", password);
+            clientSignPrivateKey = clientSignCertificatePair.getPrivateKey();
+            clientSignCertificate = (X509Certificate) clientSignCertificatePair.getCertificate();
+            logger.debug("Client Sign Certificate: \n " + clientSignCertificate.toString());
+        }else{
+            logger.warn("Failed locking for client sign certificate, will generate instead!");
 
-        X509CertificateHolder holder = myCertificateGenerator.build(sigGen);
-        Certificate eeX509CertificateStructure = holder.toASN1Structure();
-        //in newer version of BC such as 1.51, this is
-        //org.spongycastle.asn1.x509.Certificate eeX509CertificateStructure = holder.toASN1Structure();
-
-        CertificateFactory cf = CertificateFactory.getInstance("X.509", "BC");
-
-        // Read Certificate
-        InputStream is1 = new ByteArrayInputStream(eeX509CertificateStructure.getEncoded());
-        X509Certificate theCert = (X509Certificate) cf.generateCertificate(is1);
-        is1.close();
-        return theCert;
-        //return null;
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+            clientSignPrivateKey = keyPair.getPrivate();
+            clientSignCertificate = X509CertificateUtils.generateSignedX509Certificate(
+                    10, 0, 0, "CN=P2P_FILE_SYNC_CLIENT_SIGN_CERTIFICATE", keyPair, rootCertificate, rootPrivate);
+            keys.setEntry("CLIENT_CERTIFICATE", new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new X509Certificate[]{rootCertificate}), password);
+        }
+        keys.store(new FileOutputStream(truthStoragePath.toAbsolutePath().toString()), params.getTrustStorePassword().toCharArray());
     }
 }

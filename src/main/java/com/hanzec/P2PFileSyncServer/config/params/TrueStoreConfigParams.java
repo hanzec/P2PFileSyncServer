@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties("truststore")
 public class TrueStoreConfigParams {
-    public String trustStorePath = "config/client-truststore.jks";
+    public String trustStorePath = "config/truststore.bks";
     public String trustStorePassword = "wso2carbon";
     public String keyStorePath = "config/wso2carbon.jks";
     public String keyStorePassword = "wso2carbon";
-    public String defaultType = "JKS";
+    public String defaultType = "BJS";
 }

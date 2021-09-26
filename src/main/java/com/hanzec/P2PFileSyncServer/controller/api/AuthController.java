@@ -1,6 +1,6 @@
 package com.hanzec.P2PFileSyncServer.controller.api;
 
-import com.hanzec.P2PFileSyncServer.model.data.manage.User;
+import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.PasswordNotMatchException;
 import com.hanzec.P2PFileSyncServer.model.api.LoginRequest;
 import com.hanzec.P2PFileSyncServer.model.api.RegisterUserRequest;
@@ -39,13 +39,13 @@ public class AuthController {
     @PostMapping(value = "/password")
     @ResponseStatus(HttpStatus.OK)
     public Response login(@RequestBody @Validated LoginRequest loginRequest) throws PasswordNotMatchException {
-        User userCredential = (User) accountService.loadUserByUsername(loginRequest.getEmail());
+        UserAccount userAccountCredential = (UserAccount) accountService.loadUserByUsername(loginRequest.getEmail());
 
         accountService.checkPassword(loginRequest.getEmail(),loginRequest.getPassword());
 
         logger.debug("User [ " + loginRequest.getEmail() + " ] is permit to login");
         return new Response()
-                .addResponse("loginToken", tokenService.create(userCredential));
+                .addResponse("loginToken", tokenService.create(userAccountCredential));
     }
 
     @ResponseBody
@@ -53,13 +53,13 @@ public class AuthController {
     @PostMapping(value = "/server-cert")
     @ResponseStatus(HttpStatus.OK)
     public Response RequestCerts(@RequestBody @Validated LoginRequest loginRequest) throws PasswordNotMatchException {
-        User userCredential = (User) accountService.loadUserByUsername(loginRequest.getEmail());
+        UserAccount userAccountCredential = (UserAccount) accountService.loadUserByUsername(loginRequest.getEmail());
 
         accountService.checkPassword(loginRequest.getEmail(),loginRequest.getPassword());
 
         logger.debug("User [ " + loginRequest.getEmail() + " ] is permit to login");
         return new Response()
-                .addResponse("loginToken", tokenService.create(userCredential));
+                .addResponse("loginToken", tokenService.create(userAccountCredential));
     }
 
     @ResponseBody

@@ -1,6 +1,6 @@
 package com.hanzec.P2PFileSyncServer.controller.api;
 
-import com.hanzec.P2PFileSyncServer.model.data.manage.User;
+import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import com.hanzec.P2PFileSyncServer.service.AccountService;
 import com.hanzec.P2PFileSyncServer.service.TokenService;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.PasswordNotMatchException;
@@ -31,13 +31,11 @@ public class UserController {
     @ApiOperation("Get user information")
     @PreAuthorize("hasAuthority('user_details')")
     public Response getUserInformation(Principal principal){
-        User user = (User) accountService .loadUserByUsername(principal.getName());
+        UserAccount userAccount = (UserAccount) accountService .loadUserByUsername(principal.getName());
 
         return new Response()
-                .addResponse("email", user.getEmail())
-                .addResponse("username", user.getUsername())
-                .addResponse("lastName", user.getLastName())
-                .addResponse("firstName", user.getFirstName());
+                .addResponse("email", userAccount.getEmail())
+                .addResponse("username", userAccount.getUsername());
     }
 
     @ResponseBody

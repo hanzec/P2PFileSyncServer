@@ -8,6 +8,10 @@ account:
     token:
       redis_perfix: "sync_disk"
 spring:
+  data:
+    redis:
+      repositories:
+        enabled: false
   redis:
     host: redis
     port: 6379

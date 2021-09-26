@@ -32,11 +32,10 @@ public class FileDataSourceConfig {
     private final HibernateProperties hibernateProperties;
 
     FileDataSourceConfig(JpaProperties jpaProperties,
-                         HibernateProperties hibernateProperties,
                          @Qualifier("fileDataSource") DataSource fileDataSource){
         this.jpaProperties = jpaProperties;
         this.fileDataSource = fileDataSource;
-        this.hibernateProperties = hibernateProperties;
+        this.hibernateProperties = new HibernateProperties();
     }
 
     @Primary
@@ -50,11 +49,10 @@ public class FileDataSourceConfig {
     public LocalContainerEntityManagerFactoryBean entityManagerFactoryFile (EntityManagerFactoryBuilder builder) {
         Map<String, Object> properties = hibernateProperties.determineHibernateProperties(
                 jpaProperties.getProperties(), new HibernateSettings());
-
         return builder
                 .dataSource(fileDataSource)
                 .properties(properties)
-                .packages("com.hanzec.P2PFileSyncServer.repository.file")
+                .packages("com.hanzec.P2PFileSyncServer.model.data.file")
                 .persistenceUnit("filePersistenceUnit")
                 .build();
     }

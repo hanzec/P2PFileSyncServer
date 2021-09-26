@@ -7,16 +7,16 @@
           <entity value="com.hanzec.P2PFileSyncServer.model.data.file.FileBlock" />
           <entity value="com.hanzec.P2PFileSyncServer.model.data.file.DataBlock" />
           <entity value="com.hanzec.P2PFileSyncServer.model.data.file.FileDatabase" />
-          <entity value="com.hanzec.P2PFileSyncServer.model.data.file.INode" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.file.Inode" />
         </entities>
       </persistence-unit>
       <persistence-unit name="User">
         <entities>
-          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.User" />
-          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.auth.Token" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserToken" />
           <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.Group" />
-          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.auth.Permission" />
-          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.auth.Role" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.Permission" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserRole" />
         </entities>
       </persistence-unit>
     </persistence-units>
