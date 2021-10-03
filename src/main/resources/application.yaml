@@ -38,6 +38,9 @@ spring:
     file:
       driver-class-name: org.postgresql.Driver
       jdbc-url: jdbc:postgresql://postgres:5432/p2p_sync_disk_file
+    certificate:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: jdbc:postgresql://postgres:5432/p2p_sync_disk_certificate
   mvc:
     converters:
       preferred-json-mapper: gson

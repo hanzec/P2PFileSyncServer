@@ -2,6 +2,7 @@ package com.hanzec.P2PFileSyncServer.model.data.manage;
 
 import com.hanzec.P2PFileSyncServer.constant.IAccountType;
 import com.hanzec.P2PFileSyncServer.model.data.converter.AccountTypeConverter;
+import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -14,6 +15,10 @@ import java.time.ZonedDateTime;
 
 @MappedSuperclass
 public abstract class AbstractAccount implements UserDetails, Serializable {
+    @Getter
+    @Id @Column(name = "ID")
+    @GeneratedValue(generator = "uuid2")
+    private String id;
 
     @NotNull
     @Column(name = "account_type")
@@ -21,16 +26,16 @@ public abstract class AbstractAccount implements UserDetails, Serializable {
     private IAccountType accountType;
 
     @Column(name = "locked")
-    public boolean locked = false;
+    private boolean locked = false;
 
     @Column(name = "expired")
-    public boolean expired = false;
+    private boolean expired = false;
 
     @Column(name = "enabled")
-    public boolean enabled = true;
+    private boolean enabled = true;
 
     @Column(name = "credential_expired")
-    public boolean credential_expired = false;
+    private boolean credential_expired = false;
 
     @CreationTimestamp
     @Column(name = "create_time", columnDefinition="TIMESTAMP")
@@ -42,6 +47,36 @@ public abstract class AbstractAccount implements UserDetails, Serializable {
 
     public AbstractAccount(IAccountType accountType){
         this.accountType = accountType;
+    }
+
+    @Override
+    public int hashCode(){
+        return this.id.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if(this == obj)
+            return true;
+
+        if(obj == null || obj.getClass()!= this.getClass())
+            return false;
+
+        // type casting of the argument.
+        AbstractAccount geek = (AbstractAccount) obj;
+
+        // comparing the state of argument with
+        // the state of 'this' Object.
+        return geek.id.equals(this.id);
+    }
+
+    protected void enableAccount(){
+        this.enabled = true;
+    }
+
+    @Override
+    public String getUsername() {
+        return id;
     }
 
     @Override

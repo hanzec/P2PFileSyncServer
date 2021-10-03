@@ -18,12 +18,6 @@ public class RegisterUserRequest {
     @NotBlank(message = "Password should not empty")
     String password;
 
-    @NotBlank(message = "Last Name should not empty")
-    String lastName;
-
     @NotBlank(message = "Username should not empty")
     String username;
-
-    @NotBlank(message = "First Name should not empty")
-    String firstName;
 }

@@ -48,6 +48,13 @@ public class SpringBootConfiguration {
         return DataSourceBuilder.create().build();
     }
 
+    @Bean
+    @Qualifier("certificateDataSource")
+    @ConfigurationProperties(prefix = "spring.datasource.certificate")
+    public DataSource  certificateDataSource(){
+        return DataSourceBuilder.create().build();
+    }
+
     /**
      * Swagger 3 configuration
      */

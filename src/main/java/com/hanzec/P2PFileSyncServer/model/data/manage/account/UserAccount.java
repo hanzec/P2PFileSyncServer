@@ -3,7 +3,7 @@ package com.hanzec.P2PFileSyncServer.model.data.manage.account;
 import com.hanzec.P2PFileSyncServer.constant.IAccountType;
 import com.hanzec.P2PFileSyncServer.model.data.manage.AbstractAccount;
 import com.hanzec.P2PFileSyncServer.model.data.manage.Group;
-import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserRole;
+import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.Permission;
 import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserToken;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,59 +14,84 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
 import java.util.*;
 
-@Setter
-@Getter
+
 @Entity
 @Table(
         name = "USER_ACCOUNT",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = "email"),
-                @UniqueConstraint(columnNames = "username")
-        }
-)
+                @UniqueConstraint(columnNames = "EMAIL"),
+                @UniqueConstraint(columnNames = "USERNAME")
+        })
 public class UserAccount extends AbstractAccount {
-    @Id @Column(name = "ID")
-    @GeneratedValue(generator = "uuid2")
-    private String id;
+    @Setter
+    @Getter
+    @Column(name = "USERNAME")
+    private String name;
 
     @Email
+    @Setter
+    @Getter
     @NotNull
     @Column(name = "EMAIL")
     private String email;
 
-    @Column(name = "USERNAME")
-    private String username;
-
+    @Setter
+    @Getter
     @Column(name = "PASSWORD")
     private String password;
 
-    @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name = "USER_ROLE_ID")
-    private UserRole role;
-
+    @Getter
     @ManyToMany
-    private Set<Group> groups = new HashSet<>();
+    private final Set<Group> groups = new HashSet<>();
 
+    @Getter
     @OneToMany(
             mappedBy = "owner",
             fetch = FetchType.LAZY,
             cascade = CascadeType.ALL)
-    private Set<UserToken> tokens = new HashSet<>();
+    private final Set<UserToken> tokens = new HashSet<>();
 
+    @Getter
     @OneToMany(
             mappedBy = "register",
             fetch = FetchType.LAZY,
             cascade = CascadeType.ALL)
-    private Set<ClientAccount> clients = new HashSet<>();
+    private final Set<ClientAccount> clients = new HashSet<>();
+
+    @Getter
+    @ManyToMany
+    private final Set<Permission> permissions = new HashSet<>();
 
     public UserAccount(){
         super(IAccountType.USER_ACCOUNT);
     }
 
+    public UserAccount(String email, String name, String password){
+        this();
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.enableAccount(); // by default user account is automatic active when register
+    }
+
+    public UserAccount(String email, String name, String password,Group group){
+        this(email, name, password);
+        this.groups.add(group);
+    }
+
+    public UserAccount(String email, String name, String password,Set<Group> groups){
+        this(email, name, password);
+        this.groups.addAll(groups);
+    }
+
     @Override
     public Collection<GrantedAuthority> getAuthorities() {
-        var result_list = role.getPermissions();
-        result_list.add(role);
-        return result_list;
+        Set<GrantedAuthority> result_permission = new HashSet<>();
+
+        groups.parallelStream().forEach(group -> {
+            result_permission.addAll(group.getPermissions());
+
+        });
+        return result_permission;
     }
 }

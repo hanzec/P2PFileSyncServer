@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Data
 @Component
-@ConfigurationProperties("truststore")
+@ConfigurationProperties("certificate.truststore")
 public class TrueStoreConfigParams {
     public String trustStorePath = "config/truststore.bks";
     public String trustStorePassword = "wso2carbon";

@@ -1,6 +1,5 @@
 package com.hanzec.P2PFileSyncServer.config.datasouce;
 
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateProperties;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateSettings;
@@ -23,43 +22,43 @@ import java.util.Objects;
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
-        transactionManagerRef="transactionManagerFile",
-        entityManagerFactoryRef="entityManagerFactoryFile",
-        basePackages= { "com.hanzec.P2PFileSyncServer.repository.file" })
-public class FileDataSourceConfig {
+        transactionManagerRef="transactionManagerCertificate",
+        entityManagerFactoryRef="entityManagerFactoryCertificate",
+        basePackages= { "com.hanzec.P2PFileSyncServer.repository.certificate" })
+public class CertificateDataSourceConfig {
     private final DataSource dataSource;
     private final JpaProperties jpaProperties;
     private final HibernateProperties hibernateProperties;
 
-    FileDataSourceConfig(JpaProperties jpaProperties,
-                         @Qualifier("fileDataSource") DataSource dataSource){
-        this.jpaProperties = jpaProperties;
+    CertificateDataSourceConfig(JpaProperties jpaProperties,
+                         @Qualifier("certificateDataSource") DataSource dataSource){
         this.dataSource = dataSource;
+        this.jpaProperties = jpaProperties;
         this.hibernateProperties = new HibernateProperties();
     }
 
     @Primary
-    @Bean(name = "entityManagerFile" )
+    @Bean(name = "entityManagerCertificate" )
     public EntityManager entityManager(EntityManagerFactoryBuilder builder) {
-        return Objects.requireNonNull(entityManagerFactoryFile(builder).getObject()).createEntityManager();
+        return Objects.requireNonNull(entityManagerFactoryCertificate(builder).getObject()).createEntityManager();
     }
 
     @Bean
     @Primary
-    public LocalContainerEntityManagerFactoryBean entityManagerFactoryFile (EntityManagerFactoryBuilder builder) {
+    public LocalContainerEntityManagerFactoryBean entityManagerFactoryCertificate (EntityManagerFactoryBuilder builder) {
         Map<String, Object> properties = hibernateProperties.determineHibernateProperties(
                 jpaProperties.getProperties(), new HibernateSettings());
         return builder
                 .dataSource(dataSource)
                 .properties(properties)
-                .packages("com.hanzec.P2PFileSyncServer.model.data.file")
-                .persistenceUnit("filePersistenceUnit")
+                .packages("com.hanzec.P2PFileSyncServer.model.data.certificate")
+                .persistenceUnit("certificatePersistenceUnit")
                 .build();
     }
 
     @Bean
     @Primary
-    public PlatformTransactionManager transactionManagerFile(EntityManagerFactoryBuilder builder) {
-        return new JpaTransactionManager(Objects.requireNonNull(entityManagerFactoryFile(builder).getObject()));
+    public PlatformTransactionManager transactionManagerCertificate(EntityManagerFactoryBuilder builder) {
+        return new JpaTransactionManager(Objects.requireNonNull(entityManagerFactoryCertificate(builder).getObject()));
     }
 }

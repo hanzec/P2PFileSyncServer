@@ -35,7 +35,7 @@ public class UserController {
 
         return new Response()
                 .addResponse("email", userAccount.getEmail())
-                .addResponse("username", userAccount.getUsername());
+                .addResponse("username", userAccount.getName());
     }
 
     @ResponseBody

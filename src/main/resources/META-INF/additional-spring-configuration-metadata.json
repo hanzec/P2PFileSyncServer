@@ -49,5 +49,15 @@
       "name": "spring.datasource.file.jdbc-url",
       "type": "java.lang.String",
       "description": "Description for spring.datasource.file.jdbc-url."
+    },
+    {
+      "name": "spring.datasource.certificate.driver-class-name",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.certificate.driver-class-name."
+    },
+    {
+      "name": "spring.datasource.certificate.jdbc-url",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.certificate.jdbc-url."
     }
   ] }

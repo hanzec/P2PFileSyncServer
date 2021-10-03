@@ -26,14 +26,14 @@ import java.util.Objects;
         entityManagerFactoryRef="entityManagerFactoryUser",
         basePackages= {"com.hanzec.P2PFileSyncServer.repository.manage"})
 public class UserDataSourceConfig {
-    private final DataSource userDataSource;
+    private final DataSource dataSource;
     private final JpaProperties jpaProperties;
     private final HibernateProperties hibernateProperties;
 
     UserDataSourceConfig(JpaProperties jpaProperties,
-                         @Qualifier("userDataSource") DataSource fileDataSource){
+                         @Qualifier("userDataSource") DataSource dataSource){
+        this.dataSource = dataSource;
         this.jpaProperties = jpaProperties;
-        this.userDataSource = fileDataSource;
         this. hibernateProperties = new HibernateProperties();
     }
 
@@ -42,7 +42,7 @@ public class UserDataSourceConfig {
         Map<String, Object> properties = hibernateProperties.determineHibernateProperties(
                 jpaProperties.getProperties(), new HibernateSettings());
         return builder
-                .dataSource(userDataSource)
+                .dataSource(dataSource)
                 .properties(properties)
                 .packages("com.hanzec.P2PFileSyncServer.model.data.manage")
                 .persistenceUnit("userPersistenceUnit")

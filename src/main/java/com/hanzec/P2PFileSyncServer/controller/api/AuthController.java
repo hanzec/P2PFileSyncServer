@@ -1,5 +1,7 @@
 package com.hanzec.P2PFileSyncServer.controller.api;
 
+import com.hanzec.P2PFileSyncServer.model.api.RegisterClientRequest;
+import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.PasswordNotMatchException;
 import com.hanzec.P2PFileSyncServer.model.api.LoginRequest;
@@ -20,8 +22,8 @@ import com.hanzec.P2PFileSyncServer.service.AccountService;
 import com.hanzec.P2PFileSyncServer.service.TokenService;
 
 @RestController
-@RequestMapping("/api/v1/auth")
-@Api(tags = "RestAPI Related to Authentication")
+@RequestMapping("/api/v1")
+@Api(tags = "RestAPI Related Registration")
 public class AuthController {
     final TokenService tokenService;
 
@@ -49,28 +51,23 @@ public class AuthController {
     }
 
     @ResponseBody
-    @ApiOperation("Request Server public certifies")
-    @PostMapping(value = "/server-cert")
-    @ResponseStatus(HttpStatus.OK)
-    public Response RequestCerts(@RequestBody @Validated LoginRequest loginRequest) throws PasswordNotMatchException {
-        UserAccount userAccountCredential = (UserAccount) accountService.loadUserByUsername(loginRequest.getEmail());
+    @PostMapping(value = "/register_client")
+    @ApiOperation("Used for register new account")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Response register_client(@RequestBody @Validated RegisterClientRequest client){
+        //Trying to Register new Account to Server
+        ClientAccount newClient = accountService.createNewClient(client.getMachineID(),client.getIpAddress());
 
-        accountService.checkPassword(loginRequest.getEmail(),loginRequest.getPassword());
-
-        logger.debug("User [ " + loginRequest.getEmail() + " ] is permit to login");
-        return new Response()
-                .addResponse("loginToken", tokenService.create(userAccountCredential));
+        return new Response();
     }
 
     @ResponseBody
-    @PostMapping(value = "/register")
+    @PostMapping(value = "/register_account")
     @ApiOperation("Used for register new account")
     @ResponseStatus(HttpStatus.CREATED)
-    public Response register(@RequestBody @Validated RegisterUserRequest user){
+    public Response register_account(@RequestBody @Validated RegisterUserRequest user){
         //Trying to Register new Account to Server
-        accountService.createUser(user);
-
-        logger.debug("User [ " + user.getEmail() + " ] is success registered");
-        return new Response();
+        UserAccount newUser = accountService.createUser(user);
+        return new Response().addResponse("user_id", newUser.getId());
     }
 }
