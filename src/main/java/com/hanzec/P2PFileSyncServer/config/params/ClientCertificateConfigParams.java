@@ -11,8 +11,10 @@ public class ClientCertificateConfigParams {
     private int expireDays = 0;
     private int expireYears = 10;
     private int expireMonths = 0;
-    private String algorithm = "RSA";
+    private String algorithm = "ECDSA";
     private int privateKeySize = 4096;
-    private String subjectPrefix = "CLIENT_CERTIFICATE";
+    private String ecCurveTable = "B-571";
+    private String singedAlgorithm = "SHA256withECDSA";
+    private String subjectPrefix = "CLIENT_CERTIFICATE_";
 
 }

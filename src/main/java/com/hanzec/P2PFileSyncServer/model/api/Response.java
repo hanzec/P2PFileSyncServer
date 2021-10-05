@@ -7,19 +7,22 @@ import java.time.ZonedDateTime;
 
 import com.google.gson.annotations.Expose;
 import io.swagger.annotations.ApiModel;
+import lombok.Getter;
+import lombok.Setter;
 
 
-@Data
+@Getter
+@Setter
 @ApiModel
 public class Response {
     @Expose
-    String message;
+    private String message;
 
     @Expose
-    Boolean success;
+    private Boolean success;
 
     @Expose
-    ZonedDateTime timestamp;
+    private ZonedDateTime timestamp;
 
     @Expose
     private Map<String,Object> responseBody = new HashMap<>();

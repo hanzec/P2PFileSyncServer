@@ -1,12 +1,6 @@
 server:
   port: 8081
 
-account:
-  security:
-    PBKDF2Count: 1000
-    saltLength: 8
-    token:
-      redis_perfix: "sync_disk"
 spring:
   data:
     redis:

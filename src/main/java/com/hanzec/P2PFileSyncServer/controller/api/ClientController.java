@@ -1,7 +1,5 @@
 package com.hanzec.P2PFileSyncServer.controller.api;
 
-import com.hanzec.P2PFileSyncServer.model.api.Response;
-import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import com.hanzec.P2PFileSyncServer.service.AccountService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

@@ -61,7 +61,8 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .antMatchers("/login")
                 .antMatchers("/error")
                 .antMatchers("/index.html")
-                .antMatchers("/api/v1/auth/**")
+                .antMatchers("/api/v1/register_user")
+                .antMatchers("/api/v1/register_client")
                 .antMatchers("/swagger**/**", "/webjars/**", "/v3/**", "/doc.html");
     }
 
@@ -82,7 +83,7 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
         //login page configuration
         http
                 .formLogin()
-                .loginPage("/login.html")
+                .loginPage("/login")
                 .loginProcessingUrl("/api/v1/auth/password");
     }
 }

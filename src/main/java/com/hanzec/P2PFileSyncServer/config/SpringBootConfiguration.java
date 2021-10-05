@@ -1,7 +1,7 @@
 package com.hanzec.P2PFileSyncServer.config;
 
 import com.google.gson.*;
-import com.hanzec.P2PFileSyncServer.utils.SpringfoxJsonToGsonAdapter;
+import com.hanzec.P2PFileSyncServer.utils.GsonZonedDateTimeConverter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -19,7 +19,6 @@ import springfox.documentation.oas.annotations.EnableOpenApi;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
 import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.json.Json;
 import springfox.documentation.spring.web.plugins.Docket;
 
 import javax.sql.DataSource;
@@ -37,21 +36,21 @@ public class SpringBootConfiguration {
     @Primary
     @Qualifier("userDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.user")
-    public DataSource  userDataSource(){
+    public DataSource userDataSource() {
         return DataSourceBuilder.create().build();
     }
 
     @Bean
     @Qualifier("fileDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.file")
-    public DataSource  fileDataSource(){
+    public DataSource fileDataSource() {
         return DataSourceBuilder.create().build();
     }
 
     @Bean
     @Qualifier("certificateDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.certificate")
-    public DataSource  certificateDataSource(){
+    public DataSource certificateDataSource() {
         return DataSourceBuilder.create().build();
     }
 
@@ -59,7 +58,7 @@ public class SpringBootConfiguration {
      * Swagger 3 configuration
      */
     @Bean
-    public Docket docket(){
+    public Docket docket() {
         return new Docket(DocumentationType.OAS_30)
                 .apiInfo(apiInfo()).enable(true)
                 .select()
@@ -68,7 +67,7 @@ public class SpringBootConfiguration {
                 .build();
     }
 
-    private ApiInfo apiInfo(){
+    private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
                 .title("Sync Disk")
                 .description("Sync Disk Api Document")
@@ -81,7 +80,7 @@ public class SpringBootConfiguration {
      * PasswordEncoder configurations
      */
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new Pbkdf2PasswordEncoder();
     }
 
@@ -91,16 +90,11 @@ public class SpringBootConfiguration {
     @Bean
     public GsonHttpMessageConverter gsonHttpMessageConverter() {
         GsonHttpMessageConverter converter = new GsonHttpMessageConverter();
-        converter.setGson(gson());
+        converter.setGson(
+                new GsonBuilder()
+                        .excludeFieldsWithoutExposeAnnotation()
+                        .registerTypeAdapter(ZonedDateTime.class, new GsonZonedDateTimeConverter())
+                        .create());
         return converter;
-    }
-
-    private Gson gson() {
-        JsonSerializer<ZonedDateTime> ser = (src, typeOfSrc, context) -> src == null ? null : new JsonPrimitive(src.toString());
-
-        final GsonBuilder builder = new GsonBuilder()
-                .registerTypeAdapter(ZonedDateTime.class,ser);
-        builder.registerTypeAdapter(Json.class, new SpringfoxJsonToGsonAdapter());
-        return builder.excludeFieldsWithoutExposeAnnotation().create();
     }
 }

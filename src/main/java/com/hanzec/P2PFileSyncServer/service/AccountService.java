@@ -6,6 +6,7 @@ import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.Permission;
 import com.hanzec.P2PFileSyncServer.model.data.manage.Group;
+import com.hanzec.P2PFileSyncServer.model.exception.auth.ClientAlreadyExistException;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.EmailAlreadyExistException;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.PasswordNotMatchException;
 import com.hanzec.P2PFileSyncServer.repository.manage.GroupRepository;
@@ -16,8 +17,6 @@ import com.hanzec.P2PFileSyncServer.model.api.RegisterUserRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -99,8 +98,13 @@ public class AccountService implements UserDetailsService {
     }
 
     @Transactional
-    public ClientAccount createNewClient(String machineID, String ipAddress) {
-        ClientAccount newClientAccount = new ClientAccount(machineID, ipAddress);
+    public ClientAccount createNewClient(RegisterClientRequest registerClientRequest) throws ClientAlreadyExistException {
+        // cannot create a new client with same ip address and machine id
+        if(clientAccountepository.existsClientAccountByMachineIDOrIpAddress(
+                registerClientRequest.getMachineID(),registerClientRequest.getIp()))
+            throw new ClientAlreadyExistException(registerClientRequest.getMachineID(), registerClientRequest.getIp());
+
+        ClientAccount newClientAccount = new ClientAccount(registerClientRequest.getMachineID(), registerClientRequest.getIp());
 
         //save to database
         clientAccountepository.save(newClientAccount);
@@ -178,7 +182,6 @@ public class AccountService implements UserDetailsService {
                     "admin",
                     passwordEncoder.encode("admin"),
                     groupRepository.getGroupByName("ROLE_ADMIN"));
-
             //save to database
             userAccountRepository.save(userAccount);
         }

@@ -13,6 +13,7 @@ public class CACertificateConfigParams {
     private int expireMonths = 0;
     private int privateKeySize = 4096;
     private String algorithm = "RSA";
+    private String singedAlgorithm = "SHA256withRSA";
     private String rootCertificateSubject = "ROOT_CERTIFICATE";
     private String urlSignCertificateSubject = "URL_CERTIFICATE";
     private String clientSignCertificateSubject = "CLIENT_CERTIFICATE";

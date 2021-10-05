@@ -7,9 +7,15 @@ import com.hanzec.P2PFileSyncServer.model.exception.auth.PasswordNotMatchExcepti
 import com.hanzec.P2PFileSyncServer.model.api.LoginRequest;
 import com.hanzec.P2PFileSyncServer.model.api.RegisterUserRequest;
 import com.hanzec.P2PFileSyncServer.model.api.Response;
+import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
+import com.hanzec.P2PFileSyncServer.service.CertificateService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.PKCS12PfxPdu;
+import org.bouncycastle.pkcs.PKCSException;
+import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -21,19 +27,29 @@ import org.springframework.web.bind.annotation.*;
 import com.hanzec.P2PFileSyncServer.service.AccountService;
 import com.hanzec.P2PFileSyncServer.service.TokenService;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
+
 @RestController
 @RequestMapping("/api/v1")
 @Api(tags = "RestAPI Related Registration")
 public class AuthController {
-    final TokenService tokenService;
+    private final TokenService tokenService;
+    private final AccountService accountService;
+    private final CertificateService certificateService;
 
-    final AccountService accountService;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public AuthController(AccountService accountService, TokenService tokenService) {
-        this.accountService = accountService;
+    public AuthController(TokenService tokenService,
+                          AccountService accountService,
+                          CertificateService certificateService) {
         this.tokenService = tokenService;
+        this.accountService = accountService;
+        this.certificateService = certificateService;
     }
 
     @ResponseBody
@@ -54,11 +70,13 @@ public class AuthController {
     @PostMapping(value = "/register_client")
     @ApiOperation("Used for register new account")
     @ResponseStatus(HttpStatus.CREATED)
-    public Response register_client(@RequestBody @Validated RegisterClientRequest client){
+    public Response register_client(@RequestBody @Validated RegisterClientRequest client) throws CertificateGenerateException, IOException {
         //Trying to Register new Account to Server
-        ClientAccount newClient = accountService.createNewClient(client.getMachineID(),client.getIpAddress());
-
-        return new Response();
+        ClientAccount newClient = accountService.createNewClient(client);
+        PKCS12PfxPdu newCertificate = certificateService.generateNewClientCertificate(newClient);
+        return new Response()
+                .addResponse("client_id", newClient.getId())
+                .addResponse("PSCK12_certificate", Base64.toBase64String(newCertificate.getEncoded()));
     }
 
     @ResponseBody

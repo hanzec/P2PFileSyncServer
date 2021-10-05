@@ -13,10 +13,7 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS12SafeBagBuilder;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
 
 public class PKCS12CertificateUtils {
     public static PKCS12PfxPdu generatePKCS12Certificate(X509Certificate[] chain, KeyPair keyPair, String password) throws NoSuchAlgorithmException, IOException, PKCSException {

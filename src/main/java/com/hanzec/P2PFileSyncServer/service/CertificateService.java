@@ -4,32 +4,28 @@ import com.hanzec.P2PFileSyncServer.config.params.CACertificateConfigParams;
 import com.hanzec.P2PFileSyncServer.config.params.ClientCertificateConfigParams;
 import com.hanzec.P2PFileSyncServer.config.params.GeneralCertificateConfigParams;
 import com.hanzec.P2PFileSyncServer.config.params.TrueStoreConfigParams;
+import com.hanzec.P2PFileSyncServer.model.data.certificate.ClientCertificate;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
-import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
+import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
+import com.hanzec.P2PFileSyncServer.repository.certificate.ClientCertificateRepository;
 import com.hanzec.P2PFileSyncServer.utils.PKCS12CertificateUtils;
 import com.hanzec.P2PFileSyncServer.utils.X509CertificateUtils;
-import org.bouncycastle.asn1.DERBMPString;
-import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.cert.CertIOException;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.jcajce.JcaCertStore;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cms.*;
 import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;
-import org.bouncycastle.jce.PKCS12Util;
+import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.pkcs.PKCS12PfxPdu;
-import org.bouncycastle.pkcs.PKCS12SafeBagBuilder;
 import org.bouncycastle.pkcs.PKCSException;
-import org.bouncycastle.pkcs.bc.BcPKCS12PBEOutputEncryptorBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS12SafeBagBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -37,15 +33,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Objects;
 
-import static org.bouncycastle.asn1.isismtt.ocsp.RequestedCertificate.certificate;
 
 @Service
 public class CertificateService {
@@ -54,15 +47,20 @@ public class CertificateService {
     private final X509Certificate[] rootCertificate;
     private final X509Certificate[] urlSignCertificate;
     private final X509Certificate[] clientSignCertificate;
+    private final ClientCertificateRepository clientCertificateRepository;
     private final ClientCertificateConfigParams clientCertificateConfigParams;
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final GeneralCertificateConfigParams generalCertificateConfigParams;
+    private final Logger logger = LoggerFactory.getLogger(CertificateService.class);
 
     CertificateService(TrueStoreConfigParams params,
                        CACertificateConfigParams caCertificateConfigParams,
+                       ClientCertificateRepository clientCertificateRepository,
                        ClientCertificateConfigParams clientCertificateConfigParams,
-                       GeneralCertificateConfigParams generalCertificateConfigParams) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, OperatorCreationException, UnrecoverableEntryException, SignatureException, IOException {
+                       GeneralCertificateConfigParams generalCertificateConfigParams) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, OperatorCreationException, UnrecoverableEntryException, SignatureException, IOException, InvalidKeyException {
         Path truthStoragePath = Paths.get(params.getTrustStorePath());
+        this.clientCertificateRepository = clientCertificateRepository;
         this.clientCertificateConfigParams = clientCertificateConfigParams;
+        this.generalCertificateConfigParams = generalCertificateConfigParams;
 
         Security.addProvider(new BouncyCastleProvider());
         KeyStore keys = KeyStore.getInstance("BKS", "BC");
@@ -94,20 +92,28 @@ public class CertificateService {
             var rootCertificatePair = (KeyStore.PrivateKeyEntry) keys.getEntry(
                     caCertificateConfigParams.getRootCertificateSubject(), password);
 
-            rootSigner = new JcaContentSignerBuilder(generalCertificateConfigParams.getSingedAlgorithm())
+            rootSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(rootCertificatePair.getPrivateKey());
             rootCertificate = (X509Certificate[]) rootCertificatePair.getCertificateChain();
         } else {
             logger.warn("Failed looking for [" + caCertificateConfigParams.getRootCertificateSubject() + "], will generate instead!");
 
             regenerateFlag = false;
+
+            // generate key pair
             KeyPair keypair = keyPairGenerator.generateKeyPair();
 
-            rootSigner = new JcaContentSignerBuilder(generalCertificateConfigParams.getSingedAlgorithm())
+            // generate x509 issuer
+            X500NameBuilder nameBuilder = new X500NameBuilder();
+            nameBuilder.addRDN(BCStyle.C, generalCertificateConfigParams.getCountryCode());
+            nameBuilder.addRDN(BCStyle.O, generalCertificateConfigParams.getOrigination());
+            nameBuilder.addRDN(BCStyle.OU, caCertificateConfigParams.getRootCertificateSubject());
+
+            rootSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(keypair.getPrivate());
-            rootCertificate = new X509Certificate[]{X509CertificateUtils.generateSelfSignedX509Certificate(
+            rootCertificate = new X509Certificate[]{X509CertificateUtils.generateRootCertificate(
                     caCertificateConfigParams.getExpireYears(), caCertificateConfigParams.getExpireMonths(),
-                    caCertificateConfigParams.getExpireDays(), "CN=" + caCertificateConfigParams.getRootCertificateSubject(), keypair, rootSigner)};
+                    caCertificateConfigParams.getExpireDays(), nameBuilder.build(), keypair, rootSigner)};
 
             keys.setEntry(
                     caCertificateConfigParams.getRootCertificateSubject(),
@@ -121,20 +127,27 @@ public class CertificateService {
             var urlCertificatePair = (KeyStore.PrivateKeyEntry) keys.getEntry(
                     caCertificateConfigParams.getUrlSignCertificateSubject(), password);
 
-            urlSigner = new JcaContentSignerBuilder(generalCertificateConfigParams.getSingedAlgorithm())
+            urlSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(urlCertificatePair.getPrivateKey());
             urlSignCertificate = (X509Certificate[]) urlCertificatePair.getCertificateChain();
         }else{
-            logger.warn("Failed looking for [ " + caCertificateConfigParams.getUrlSignCertificateSubject() + " ], will generate instead!");
+            logger.warn("Failed looking for [" + caCertificateConfigParams.getUrlSignCertificateSubject() + "], will generate instead!");
 
+            // generate key pair
             KeyPair keyPair = keyPairGenerator.generateKeyPair();
-            urlSigner = new JcaContentSignerBuilder(generalCertificateConfigParams.getSingedAlgorithm())
+
+            // generate x509 issuer
+            X500NameBuilder nameBuilder = new X500NameBuilder();
+            nameBuilder.addRDN(BCStyle.C, generalCertificateConfigParams.getCountryCode());
+            nameBuilder.addRDN(BCStyle.O, generalCertificateConfigParams.getOrigination());
+            nameBuilder.addRDN(BCStyle.OU, caCertificateConfigParams.getUrlSignCertificateSubject());
+
+            urlSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(keyPair.getPrivate());
             urlSignCertificate = new X509Certificate[]{
-                    X509CertificateUtils.generateSubRootX509Certificate(
+                    X509CertificateUtils.generateIntermediateCertificate(
                             caCertificateConfigParams.getExpireYears(), caCertificateConfigParams.getExpireMonths(),
-                            caCertificateConfigParams.getExpireDays(), "CN=" + caCertificateConfigParams.getUrlSignCertificateSubject(),
-                            keyPair, getRootCertificate(), rootSigner),
+                            caCertificateConfigParams.getExpireDays(), nameBuilder.build(), keyPair.getPublic(), rootCertificate[0], rootSigner),
                     getRootCertificate()};
             keys.setEntry(
                     caCertificateConfigParams.getUrlSignCertificateSubject(),
@@ -147,20 +160,27 @@ public class CertificateService {
             var clientSignCertificatePair = (KeyStore.PrivateKeyEntry) keys.getEntry(
                     caCertificateConfigParams.getClientSignCertificateSubject(), password);
 
-            clientSigner = new JcaContentSignerBuilder(generalCertificateConfigParams.getSingedAlgorithm())
+            clientSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(clientSignCertificatePair.getPrivateKey());
             clientSignCertificate = (X509Certificate[]) clientSignCertificatePair.getCertificateChain();
         }else{
-            logger.warn("Failed locking for client sign certificate, will generate instead!");
+            logger.warn("Failed locking for [" + caCertificateConfigParams.getClientSignCertificateSubject() + "], will generate instead!");
 
+            // generate key pair
             KeyPair keyPair = keyPairGenerator.generateKeyPair();
-            clientSigner = new JcaContentSignerBuilder(generalCertificateConfigParams.getSingedAlgorithm())
+
+            // generate x509 issuer
+            X500NameBuilder nameBuilder = new X500NameBuilder();
+            nameBuilder.addRDN(BCStyle.C, generalCertificateConfigParams.getCountryCode());
+            nameBuilder.addRDN(BCStyle.O, generalCertificateConfigParams.getOrigination());
+            nameBuilder.addRDN(BCStyle.OU, caCertificateConfigParams.getClientSignCertificateSubject());
+
+            clientSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(keyPair.getPrivate());
             clientSignCertificate = new X509Certificate[]{
-                    X509CertificateUtils.generateSubRootX509Certificate(
+                    X509CertificateUtils.generateIntermediateCertificate(
                             caCertificateConfigParams.getExpireYears(), caCertificateConfigParams.getExpireMonths(),
-                            caCertificateConfigParams.getExpireDays(), "CN=" + caCertificateConfigParams.getClientSignCertificateSubject(),
-                            keyPair, getRootCertificate(), rootSigner),
+                            caCertificateConfigParams.getExpireDays(), nameBuilder.build(), keyPair.getPublic(), rootCertificate[0], rootSigner),
                     getRootCertificate()};
             keys.setEntry(
                     caCertificateConfigParams.getClientSignCertificateSubject(),
@@ -181,21 +201,49 @@ public class CertificateService {
 
 
     // todo do not set RDN for new certificate
-    public PKCS12PfxPdu generateNewClientCertificate(ClientAccount clientAccount) throws NoSuchAlgorithmException, CertificateException, SignatureException, OperatorCreationException, NoSuchProviderException, IOException, PKCSException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(
-                clientCertificateConfigParams.getAlgorithm());
-        keyPairGenerator.initialize(clientCertificateConfigParams.getPrivateKeySize());
+    public PKCS12PfxPdu generateNewClientCertificate(ClientAccount clientAccount) throws CertificateGenerateException {
+        PKCS12PfxPdu ret;
+        X509Certificate[] chain;
+        KeyPairGenerator keyPairGenerator;
 
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        try{
+            keyPairGenerator = KeyPairGenerator.getInstance(
+                    clientCertificateConfigParams.getAlgorithm());
 
-        X509Certificate[] chain = new X509Certificate[]{
-                X509CertificateUtils.generateClientX509Certificate(
-                        clientCertificateConfigParams.getExpireYears(), clientCertificateConfigParams.getExpireMonths(),
-                        clientCertificateConfigParams.getExpireDays(), "CN=" + clientCertificateConfigParams.getSubjectPrefix() + clientAccount.getMachineID(),
-                        keyPair, getRootCertificate(), clientAccount.getIpAddress(), clientAccount.getMachineID(), clientSigner),
-                clientSignCertificate[0], clientSignCertificate[1]};
+            if(Objects.equals(clientCertificateConfigParams.getAlgorithm(), "RSA")){
+                keyPairGenerator.initialize(clientCertificateConfigParams.getPrivateKeySize());
+            } else if (Objects.equals(clientCertificateConfigParams.getAlgorithm(), "ECDSA")){
+                ECParameterSpec ecSpec = ECNamedCurveTable
+                        .getParameterSpec(clientCertificateConfigParams.getEcCurveTable());
+                keyPairGenerator.initialize(ecSpec, new SecureRandom());
+            }
 
-        return PKCS12CertificateUtils.generatePKCS12Certificate(chain, keyPair, null);
+            // generate key pair
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+            // generate x509 issuer
+            X500NameBuilder subjectBuilder = new X500NameBuilder();
+            subjectBuilder.addRDN(BCStyle.C, generalCertificateConfigParams.getCountryCode());
+            subjectBuilder.addRDN(BCStyle.O, generalCertificateConfigParams.getOrigination());
+            subjectBuilder.addRDN(BCStyle.CN, clientCertificateConfigParams.getSubjectPrefix() + clientAccount.getMachineID());
+
+            chain = new X509Certificate[]{
+                    X509CertificateUtils.generateClientX509Certificate(
+                            clientCertificateConfigParams.getExpireYears(), clientCertificateConfigParams.getExpireMonths(),
+                            clientCertificateConfigParams.getExpireDays(), subjectBuilder.build(),keyPair.getPublic(),
+                            getClientSignCertificate(), clientAccount.getIpAddress(), clientAccount.getMachineID(), clientSigner),
+                    clientSignCertificate[0], clientSignCertificate[1]};
+
+            ret = PKCS12CertificateUtils.generatePKCS12Certificate(chain, keyPair, null);
+        } catch (NoSuchAlgorithmException | CertificateException | SignatureException | OperatorCreationException | NoSuchProviderException | IOException | PKCSException | InvalidKeyException | InvalidAlgorithmParameterException e){
+            e.printStackTrace();
+            throw new CertificateGenerateException(e);
+        }
+
+        // update client certificate database
+        clientCertificateRepository.save(new ClientCertificate(chain[0]));
+
+        return ret;
     }
 
     public CMSSignedData getClientSignPublicCertificate() throws CertificateEncodingException, CMSException, OperatorCreationException {

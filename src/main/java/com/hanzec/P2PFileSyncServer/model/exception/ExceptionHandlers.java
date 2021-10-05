@@ -1,28 +1,38 @@
 package com.hanzec.P2PFileSyncServer.model.exception;
 
-import com.google.gson.Gson;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.*;
 
 import com.hanzec.P2PFileSyncServer.model.api.Response;
+import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.json.GsonHttpMessageConverter;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.ConstraintViolationException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 @ControllerAdvice
 public class ExceptionHandlers {
-    private static final Gson gson = new Gson();
+    private final GsonHttpMessageConverter gson;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    ExceptionHandlers(GsonHttpMessageConverter gsonHttpMessageConverter) {
+        this.gson = gsonHttpMessageConverter;
+    }
 
     @ExceptionHandler({
             TokenVerifyFaildException.class,
@@ -31,8 +41,8 @@ public class ExceptionHandlers {
             MethodArgumentNotValidException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public void GenericBadRequestException(Exception ex, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        sendMessage(ex,response);
-        logger.debug("Bad Request because " + ex.getClass().getName() + " for endpoint [ " + request.getRequestURI() + "]" );
+        sendMessage(ex, response);
+        logger.debug("Bad Request because " + ex.getClass().getName() + " for endpoint [" + request.getRequestURI() + "]");
     }
 
     @ExceptionHandler({
@@ -40,34 +50,68 @@ public class ExceptionHandlers {
             UsernameNotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public void GenericNotFoundException(Exception ex, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        sendMessage(ex,response);
-        logger.debug("Page not found because " + ex.getClass().getName() + " for endpoint [ " + request.getRequestURI() + "]" );
+        sendMessage(ex, response);
+        logger.debug("Page not found because " + ex.getClass().getName() + " for endpoint [" + request.getRequestURI() + "]");
     }
 
     @ExceptionHandler({
             PasswordNotMatchException.class})
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public void GenericForbiddenException(Exception ex, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        sendMessage(ex,response);
-        logger.debug("Request forbidden because " + ex.getClass().getName() + " for endpoint [ " + request.getRequestURI() + "]" );
+        sendMessage(ex, response);
+        logger.debug("Request forbidden because " + ex.getClass().getName() + " for endpoint [" + request.getRequestURI() + "]");
+    }
+
+
+    @ExceptionHandler({
+            NullPointerException.class,
+            CertificateGenerateException.class,
+            DataIntegrityViolationException.class,
+            InvalidDataAccessApiUsageException.class})
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public void GenericInternalException(Exception ex, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        sendMessage(ex, response);
+        StringWriter sw = new StringWriter();
+
+        if(ex instanceof InternalExceptionWrap){
+            ((InternalExceptionWrap) ex).getInternalException().printStackTrace(new PrintWriter(sw));
+        } else {
+            ex.printStackTrace(new PrintWriter(sw));
+        }
+
+        logger.error("Exception happened at Endpoint [" + request.getRequestURI() + "]: \n" + sw.toString());
     }
 
     @ExceptionHandler({})
     @ResponseStatus(HttpStatus.CONFLICT)
     public void GenericConflictException(Exception ex, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        sendMessage(ex,response);
-        logger.debug("Request forbidden because " + ex.getClass().getName() + " for endpoint [ " + request.getRequestURI() + "]" );
+        sendMessage(ex, response);
+        logger.debug("Request forbidden because " + ex.getClass().getName() + " for endpoint [" + request.getRequestURI() + "]");
     }
 
-    private static void sendMessage(Exception ex, HttpServletResponse response) throws IOException {
-        MethodArgumentNotValidException c = (MethodArgumentNotValidException) ex;
-        List<ObjectError> errors =c.getBindingResult().getAllErrors();
+    private void sendMessage(Exception ex, HttpServletResponse response) throws IOException {
+        Response result = new Response();
 
-        List<String> errorList = new ArrayList<>();
-
-        errors.forEach(V -> { errorList.add(V.getDefaultMessage());});
-
-        response.getWriter().write(
-                gson.toJson(new Response().addResponse("Error Item",errorList)));
+        if (ex instanceof MethodArgumentNotValidException) {
+            // if exception are generated by spring validation with @
+            var exception = (MethodArgumentNotValidException) ex;
+            result.addResponse("errors found at request body", "{" + exception.getParameter().getParameterName() + ": " + exception.getMessage() + "}");
+        } else if (ex instanceof ConstraintViolationException) {
+            // if exception are generated by spring validation with @RequestParam
+            List<String> errors = new ArrayList<>();
+            ((ConstraintViolationException) ex).getConstraintViolations().forEach(
+                    error -> {
+                        errors.add(error.getMessage());
+                    }
+            );
+            result.addResponse("error found in request path", errors);
+        } else if (ex instanceof InternalExceptionWrap) {
+            // if exception are generated as internal error
+            var exception = (InternalExceptionWrap) ex;
+            result.addResponse("internal error", exception.getMessage());
+        }else {
+            result.addResponse("internal error", "does not have message, please contact to server administrator for further information");
+        }
+        response.getWriter().write(gson.getGson().toJson(result));
     }
 }

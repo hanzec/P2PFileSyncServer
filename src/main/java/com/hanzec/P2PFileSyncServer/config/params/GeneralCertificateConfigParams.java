@@ -8,5 +8,6 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties("certificate")
 public class GeneralCertificateConfigParams {
-    private String singedAlgorithm = "SHA256withRSA";
+    private String countryCode = "CN";
+    private String origination = "IASTATE COMS 454 P2P FILE SYNC PROJECT";
 }

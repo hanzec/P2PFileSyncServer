@@ -36,10 +36,7 @@ public class Group{
     private String description;
 
     @Getter
-    @OneToMany(
-            mappedBy = "role",
-            fetch = FetchType.LAZY,
-            cascade = CascadeType.ALL)
+    @ManyToMany
     private final Set<UserAccount> roleAccount = new HashSet<>();
 
     @Getter
