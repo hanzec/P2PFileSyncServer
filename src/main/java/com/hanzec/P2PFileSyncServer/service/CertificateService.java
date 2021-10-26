@@ -8,8 +8,10 @@ import com.hanzec.P2PFileSyncServer.model.data.certificate.ClientCertificate;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
 import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
 import com.hanzec.P2PFileSyncServer.repository.certificate.ClientCertificateRepository;
+import com.hanzec.P2PFileSyncServer.utils.ByteArrayUtil;
 import com.hanzec.P2PFileSyncServer.utils.PKCS12CertificateUtils;
 import com.hanzec.P2PFileSyncServer.utils.X509CertificateUtils;
+import io.lettuce.core.StrAlgoArgs;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.jcajce.JcaCertStore;
@@ -19,16 +21,24 @@ import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.ContentVerifier;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.pkcs.PKCS12PfxPdu;
 import org.bouncycastle.pkcs.PKCSException;
+import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.util.ByteUtils;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriBuilder;
 
 import java.io.*;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,13 +46,19 @@ import java.security.*;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Objects;
+
+import static com.hanzec.P2PFileSyncServer.utils.ByteArrayUtil.ByteArrayToHex;
 
 
 @Service
 public class CertificateService {
     private final ContentSigner urlSigner;
+    private final ContentVerifier urlVerifier;
     private final ContentSigner clientSigner;
     private final X509Certificate[] rootCertificate;
     private final X509Certificate[] urlSignCertificate;
@@ -129,6 +145,8 @@ public class CertificateService {
 
             urlSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(urlCertificatePair.getPrivateKey());
+            urlVerifier = new JcaContentVerifierProviderBuilder()
+                    .setProvider("BC").build(urlCertificatePair.getCertificate().getPublicKey()).get(urlSigner.getAlgorithmIdentifier());
             urlSignCertificate = (X509Certificate[]) urlCertificatePair.getCertificateChain();
         }else{
             logger.warn("Failed looking for [" + caCertificateConfigParams.getUrlSignCertificateSubject() + "], will generate instead!");
@@ -144,6 +162,8 @@ public class CertificateService {
 
             urlSigner = new JcaContentSignerBuilder(caCertificateConfigParams.getSingedAlgorithm())
                     .setProvider("BC").build(keyPair.getPrivate());
+            urlVerifier = new JcaContentVerifierProviderBuilder()
+                    .setProvider("BC").build(keyPair.getPublic()).get(urlSigner.getAlgorithmIdentifier());
             urlSignCertificate = new X509Certificate[]{
                     X509CertificateUtils.generateIntermediateCertificate(
                             caCertificateConfigParams.getExpireYears(), caCertificateConfigParams.getExpireMonths(),
@@ -199,6 +219,15 @@ public class CertificateService {
 
     protected X509Certificate getClientSignCertificate(){ return clientSignCertificate[0];}
 
+    public String signUrl(String url) throws IOException {
+        urlSigner.getOutputStream().write(url.getBytes(StandardCharsets.UTF_8));
+        return ByteArrayToHex(urlSigner.getSignature());
+    }
+
+    public boolean verifyUrl(String url, String sign) throws IOException {
+        urlVerifier.getOutputStream().write(url.getBytes(StandardCharsets.UTF_8));
+        return urlVerifier.verify(ByteArrayUtil.hexStringToByteArray(sign));
+    }
 
     // todo do not set RDN for new certificate
     public PKCS12PfxPdu generateNewClientCertificate(ClientAccount clientAccount) throws CertificateGenerateException {

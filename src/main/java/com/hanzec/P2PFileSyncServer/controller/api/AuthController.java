@@ -18,6 +18,7 @@ import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,29 +54,22 @@ public class AuthController {
     }
 
     @ResponseBody
-    @ApiOperation("Login API")
-    @PostMapping(value = "/password")
-    @ResponseStatus(HttpStatus.OK)
-    public Response login(@RequestBody @Validated LoginRequest loginRequest) throws PasswordNotMatchException {
-        UserAccount userAccountCredential = (UserAccount) accountService.loadUserByUsername(loginRequest.getEmail());
-
-        accountService.checkPassword(loginRequest.getEmail(),loginRequest.getPassword());
-
-        logger.debug("User [ " + loginRequest.getEmail() + " ] is permit to login");
-        return new Response()
-                .addResponse("loginToken", tokenService.create(userAccountCredential));
-    }
-
-    @ResponseBody
     @PostMapping(value = "/register_client")
     @ApiOperation("Used for register new account")
     @ResponseStatus(HttpStatus.CREATED)
     public Response register_client(@RequestBody @Validated RegisterClientRequest client) throws CertificateGenerateException, IOException {
         //Trying to Register new Account to Server
-        ClientAccount newClient = accountService.createNewClient(client);
-        PKCS12PfxPdu newCertificate = certificateService.generateNewClientCertificate(newClient);
+        Pair<ClientAccount,Integer> newClient = accountService.createNewClient(client);
+        PKCS12PfxPdu newCertificate = certificateService.generateNewClientCertificate(newClient.getFirst());
+
+        // generate client active link
+        String path = "/api/v1/client/" + newClient.getFirst().getId() + "/enable?timestamp=" + System.currentTimeMillis() / 1000L;
+        String sig = certificateService.signUrl(path);
+
         return new Response()
-                .addResponse("client_id", newClient.getId())
+                .addResponse("client_id", newClient.getFirst().getId())
+                .addResponse("enable_url", path + "&sig=" + sig)
+                .addResponse("register_code", newClient.getSecond())
                 .addResponse("PSCK12_certificate", Base64.toBase64String(newCertificate.getEncoded()));
     }
 

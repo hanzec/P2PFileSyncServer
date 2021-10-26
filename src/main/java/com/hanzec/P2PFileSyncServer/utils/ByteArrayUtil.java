@@ -4,6 +4,24 @@ public class ByteArrayUtil {
 
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
+    public static byte[] longToBytes(long l) {
+        byte[] result = new byte[Long.BYTES];
+        for (int i = Long.BYTES - 1; i >= 0; i--) {
+            result[i] = (byte)(l & 0xFF);
+            l >>= Byte.SIZE;
+        }
+        return result;
+    }
+
+    public static long bytesToLong(final byte[] b) {
+        long result = 0;
+        for (int i = 0; i < Long.BYTES; i++) {
+            result <<= Byte.SIZE;
+            result |= (b[i] & 0xFF);
+        }
+        return result;
+    }
+
     public static String ByteArrayToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
         for (int j = 0; j < bytes.length; j++) {
@@ -14,6 +32,15 @@ public class ByteArrayUtil {
         return new String(hexChars);
     }
 
+    public static byte[] hexStringToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
 
     public static byte[] convertFromBooleanArray(boolean[] booleans) {
         byte[] result = new byte[booleans.length / 8];

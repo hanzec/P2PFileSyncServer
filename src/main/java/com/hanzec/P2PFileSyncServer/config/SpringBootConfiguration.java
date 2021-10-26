@@ -59,11 +59,27 @@ public class SpringBootConfiguration {
      */
     @Bean
     public Docket docket() {
-        return new Docket(DocumentationType.OAS_30)
-                .apiInfo(apiInfo()).enable(true)
+        return new Docket(
+                // 设置使用 OpenApi 3.0 规范
+                DocumentationType.OAS_30)
+                // 是否开启 Swagger
+                .enable(true)
+                // 配置项目基本信息
+                .apiInfo(apiInfo())
+                // 设置项目组名
+                //.groupName("xxx组")
+                // 选择那些路径和api会生成document
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.hanzec"))
+                // 对所有api进行监控
+                .apis(RequestHandlerSelectors.any())
+                // 如果需要指定对某个包的接口进行监控，则可以配置如下
+                //.apis(RequestHandlerSelectors.basePackage("mydlq.swagger.example.controller"))
+                // 对所有路径进行监控
                 .paths(PathSelectors.any())
+                // 忽略以"/error"开头的路径,可以防止显示如404错误接口
+                .paths(PathSelectors.regex("/error.*").negate())
+                // 忽略以"/actuator"开头的路径
+                .paths(PathSelectors.regex("/actuator.*").negate())
                 .build();
     }
 
@@ -71,7 +87,7 @@ public class SpringBootConfiguration {
         return new ApiInfoBuilder()
                 .title("Sync Disk")
                 .description("Sync Disk Api Document")
-                .contact(new Contact("Hanze Chen", "syncdisk.hanzec.com", "me@hanzec.com"))
+                .contact(new Contact("Hanze Chen", "127.0.0.1:8081", "me@hanzec.com"))
                 .version("0.0.1")
                 .build();
     }

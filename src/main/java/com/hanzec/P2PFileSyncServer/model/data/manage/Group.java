@@ -9,6 +9,7 @@ import javax.validation.constraints.NotNull;
 
 import org.springframework.security.core.GrantedAuthority;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -18,7 +19,7 @@ import java.util.Set;
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = "NAME")
         })
-public class Group{
+public class Group implements Serializable {
     @Getter
     @Id @Column(name = "ID")
     @GeneratedValue(strategy=GenerationType.AUTO)

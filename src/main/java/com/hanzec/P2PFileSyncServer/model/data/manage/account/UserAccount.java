@@ -79,6 +79,12 @@ public class UserAccount extends AbstractAccount {
         this.groups.add(group);
     }
 
+    public UserAccount(String email, String name, String password,Group group, Permission permission){
+        this(email, name, password);
+        this.groups.add(group);
+        this.permissions.add(permission);
+    }
+
     public UserAccount(String email, String name, String password,Set<Group> groups){
         this(email, name, password);
         this.groups.addAll(groups);

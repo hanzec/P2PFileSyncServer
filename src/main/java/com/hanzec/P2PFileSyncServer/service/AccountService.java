@@ -17,6 +17,7 @@ import com.hanzec.P2PFileSyncServer.model.api.RegisterUserRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.util.Pair;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.security.Principal;
+import java.util.HashMap;
 
 @Service
 public class AccountService implements UserDetailsService {
@@ -42,10 +44,9 @@ public class AccountService implements UserDetailsService {
 
     private final ClientAccountepository clientAccountepository;
 
-
-
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    private final HashMap<String, Integer> register_code = new HashMap<>();
 
     public AccountService(PasswordEncoder passwordEncoder,
                           GroupRepository groupRepository,
@@ -98,7 +99,7 @@ public class AccountService implements UserDetailsService {
     }
 
     @Transactional
-    public ClientAccount createNewClient(RegisterClientRequest registerClientRequest) throws ClientAlreadyExistException {
+    public Pair<ClientAccount,Integer> createNewClient(RegisterClientRequest registerClientRequest) throws ClientAlreadyExistException {
         // cannot create a new client with same ip address and machine id
         if(clientAccountepository.existsClientAccountByMachineIDOrIpAddress(
                 registerClientRequest.getMachineID(),registerClientRequest.getIp()))
@@ -109,15 +110,19 @@ public class AccountService implements UserDetailsService {
         //save to database
         clientAccountepository.save(newClientAccount);
 
+        // add register code
+        int reg_code = (int) ((Math.random() * (999999 - 100000)) + 10000);
+        register_code.put(newClientAccount.getId(),reg_code);
+
         logger.info("New User with id :[" + newClientAccount.getMachineID() + "] is created");
 
-        return newClientAccount;
+        return Pair.of(newClientAccount, reg_code);
     }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        if (userAccountRepository.existsById(email))
-            return userAccountRepository.getById(email);
+        if (userAccountRepository.existsByEmail(email))
+            return userAccountRepository.getByEmail(email);
         else
             throw new UsernameNotFoundException("username " + email + " is not found");
     }
@@ -139,12 +144,14 @@ public class AccountService implements UserDetailsService {
     }
 
     @Transactional
-    public void enableClient(String clientID, String operatorUserID) {
+    public Integer enableClient(String clientID, String operatorUserID) {
         ClientAccount clientAccount = clientAccountepository.getById(clientID);
 
         clientAccount.enableClient(clientEntityManager.getReference(UserAccount.class,operatorUserID));
 
         clientAccountepository.save(clientAccount);
+
+        return register_code.get(clientID);
     }
 
 
@@ -153,7 +160,10 @@ public class AccountService implements UserDetailsService {
     }
 
     private void initializeGroup() {
-
+        if (!groupRepository.existsByName("ROLE_ADMIN")) {
+            Group newGroup = new Group("ROLE_ADMIN");
+            groupRepository.save(newGroup);
+        }
     }
 
     private void initializePermission() {
@@ -172,6 +182,11 @@ public class AccountService implements UserDetailsService {
             Permission permission = new Permission("modify_credential", "Permission for modify_credential");
             permissionRepository.save(permission);
         }
+
+        if (!permissionRepository.existsByName("enable_client")) {
+            Permission permission = new Permission("enable_client", "Permission for enable_client");
+            permissionRepository.save(permission);
+        }
     }
 
     private void initializeUserAccount() {
@@ -181,7 +196,9 @@ public class AccountService implements UserDetailsService {
                     "admin@example.com",
                     "admin",
                     passwordEncoder.encode("admin"),
-                    groupRepository.getGroupByName("ROLE_ADMIN"));
+                    groupRepository.getGroupByName("ROLE_ADMIN"),
+                    permissionRepository.getPermissionByName("enable_client"));
+
             //save to database
             userAccountRepository.save(userAccount);
         }

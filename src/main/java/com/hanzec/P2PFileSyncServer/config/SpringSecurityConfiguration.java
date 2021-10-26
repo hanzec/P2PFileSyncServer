@@ -12,27 +12,37 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 @Order(1)
 @Configuration
 @EnableWebSecurity
 public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-    final AccountService accountService;
+    private final TokenService tokenService;
 
-    final PasswordEncoder passwordEncoder;
+    private final AccountService accountService;
 
-    final TokenService tokenService;
+    private final PasswordEncoder passwordEncoder;
 
 
     public SpringSecurityConfiguration(AccountService accountService,
                                        PasswordEncoder passwordEncoder,
                                        TokenService tokenService) {
+        this.tokenService = tokenService;
         this.accountService = accountService;
         this.passwordEncoder = passwordEncoder;
-        this.tokenService = tokenService;
     }
 
     @Override
@@ -58,9 +68,10 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity web) {
         //ignoring static objects
         web.ignoring()
-                .antMatchers("/login")
                 .antMatchers("/error")
                 .antMatchers("/index.html")
+                .antMatchers("/client_sign_root.crt")
+                .antMatchers("/api/v1/password_login")
                 .antMatchers("/api/v1/register_user")
                 .antMatchers("/api/v1/register_client")
                 .antMatchers("/swagger**/**", "/webjars/**", "/v3/**", "/doc.html");
@@ -70,6 +81,7 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
+                .antMatchers("/login").permitAll()
                 .anyRequest().authenticated();
 
         //disable csrf protection for post return 403
@@ -80,10 +92,23 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
         http
                 .logout();
 
+        // enable remember me
+
         //login page configuration
         http
                 .formLogin()
                 .loginPage("/login")
-                .loginProcessingUrl("/api/v1/auth/password");
+                .usernameParameter("email")
+                .passwordParameter("password")
+                // switch back to original page
+                .successHandler((request, response, authentication) -> {
+                    response.setContentType("application/json;charset=utf-8");
+                    RequestCache cache = new HttpSessionRequestCache();
+                    SavedRequest savedRequest = cache.getRequest(request, response);
+                    String url = savedRequest.getRedirectUrl();
+
+                    response.sendRedirect(url);
+                })
+                .permitAll();
     }
 }

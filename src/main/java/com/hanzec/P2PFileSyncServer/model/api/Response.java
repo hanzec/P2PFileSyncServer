@@ -19,13 +19,18 @@ public class Response {
     private String message;
 
     @Expose
-    private Boolean success;
+    private Boolean success = true;
 
     @Expose
     private ZonedDateTime timestamp;
 
     @Expose
     private Map<String,Object> responseBody = new HashMap<>();
+
+    public Response setFailure() {
+        this.success = false;
+        return this;
+    }
 
     public Response(){
         this.timestamp = ZonedDateTime.now();
