@@ -1,5 +1,9 @@
 package com.hanzec.P2PFileSyncServer.config;
 
+import ch.qos.logback.core.net.server.Client;
+import com.google.gson.Gson;
+import com.hanzec.P2PFileSyncServer.security.filter.ClientLoginFilter;
+import com.hanzec.P2PFileSyncServer.security.provider.ClientAuthenticationProvider;
 import com.hanzec.P2PFileSyncServer.service.AccountService;
 import com.hanzec.P2PFileSyncServer.service.TokenService;
 import org.springframework.context.annotation.Bean;
@@ -12,23 +16,18 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-
-@Order(1)
 @Configuration
 @EnableWebSecurity
 public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
+
+    private final Gson gson;
 
     private final TokenService tokenService;
 
@@ -36,19 +35,25 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final ClientAuthenticationProvider clientAuthenticationProvider;
 
-    public SpringSecurityConfiguration(AccountService accountService,
+    public SpringSecurityConfiguration(Gson gson,
+                                       AccountService accountService,
                                        PasswordEncoder passwordEncoder,
+                                       ClientAuthenticationProvider clientAuthenticationProvider,
                                        TokenService tokenService) {
+        this.gson = gson;
         this.tokenService = tokenService;
         this.accountService = accountService;
         this.passwordEncoder = passwordEncoder;
+        this.clientAuthenticationProvider = clientAuthenticationProvider;
     }
 
     @Override
     public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
         //Provider for session Login
         authenticationManagerBuilder
+                .authenticationProvider(clientAuthenticationProvider)
                 .userDetailsService(accountService)
                 .passwordEncoder(passwordEncoder);
     }
@@ -92,7 +97,8 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
         http
                 .logout();
 
-        // enable remember me
+        // add custom filters
+        http.addFilterAt(new ClientLoginFilter(gson, authenticationManagerBean()), UsernamePasswordAuthenticationFilter.class);
 
         //login page configuration
         http

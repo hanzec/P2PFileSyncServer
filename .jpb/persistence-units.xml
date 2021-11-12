@@ -14,7 +14,7 @@
         <entities>
           <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount" />
           <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserToken" />
-          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.Group" />
+          <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.account.Group" />
           <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.Permission" />
           <entity value="com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserRole" />
         </entities>

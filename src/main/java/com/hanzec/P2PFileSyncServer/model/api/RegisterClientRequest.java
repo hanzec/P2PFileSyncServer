@@ -22,4 +22,8 @@ public class RegisterClientRequest {
     @SerializedName("machineID")
     @NotBlank(message = "ip address")
     private String machineID;
+
+    @Expose
+    @SerializedName("group")
+    private String groupName = "DEFAULT_GROUP";
 }

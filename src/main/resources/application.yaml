@@ -14,13 +14,13 @@ spring:
     properties:
       hibernate:
         hbm2ddl:
-          auto: create
+          auto: update
         cache:
           region:
             use_second_level_cache: true
             region.factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
             use_query_cache: true
-        ddl-auto: create
+        ddl-auto: update
         default_schema: public
         enable_lazy_load_no_trans: true
         dialect: org.hibernate.dialect.PostgreSQLDialect

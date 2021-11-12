@@ -1,15 +1,22 @@
 package com.hanzec.P2PFileSyncServer.controller.api;
 
+import com.hanzec.P2PFileSyncServer.model.api.Response;
+import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
+import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
 import com.hanzec.P2PFileSyncServer.service.AccountService;
+import com.hanzec.P2PFileSyncServer.service.CertificateService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.bouncycastle.pkcs.PKCS12PfxPdu;
+import org.bouncycastle.util.encoders.Base64;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.security.Principal;
 
 @RestController
@@ -18,9 +25,11 @@ import java.security.Principal;
 public class ClientController {
 
     private final AccountService accountService;
+    private final CertificateService certificateService;
 
-    public ClientController(AccountService accountService){
+    public ClientController(AccountService accountService, CertificateService certificateService){
         this.accountService = accountService;
+        this.certificateService = certificateService;
     }
 
     @ApiOperation("Activate Registered Client")
@@ -29,5 +38,50 @@ public class ClientController {
     @PreAuthorize("hasAuthority('enable_client')")
     public void enableClient(@AuthenticationPrincipal UserDetails principal, @PathVariable String clientID, @RequestParam String timestamp, @RequestParam String sig){
         accountService.enableClient(clientID,  principal.getUsername());
+    }
+
+    @ApiOperation("Request current client information")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping(value = "")
+    @PreAuthorize("hasAuthority('client_operation')")
+    public Response getClientInformation(@AuthenticationPrincipal UserDetails principal){
+        var account = (ClientAccount) principal;
+        return new Response()
+                .addResponse("client_id", account.getId())
+                .addResponse("machine_id", account.getMachineID())
+                .addResponse("ip_address", account.getIpAddress())
+                .addResponse("register_by", account.getRegister().getId());
+    }
+
+
+    @ApiOperation("get the registered devices by registration device")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping(value = "/peer")
+    @PreAuthorize("hasAuthority('client_operation')")
+    public Response getClientPeers(@AuthenticationPrincipal UserDetails principal){
+        var account = (ClientAccount) principal;
+        return new Response()
+                .addResponse("peers", accountService.getClientPeer(account));
+    }
+
+    @ApiOperation("get the group information of current device")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping(value = "/group")
+    @PreAuthorize("hasAuthority('client_operation')")
+    public Response getClientGroup(@AuthenticationPrincipal UserDetails principal){
+        return new Response()
+                .addResponse("group",((ClientAccount) principal).getGroup());
+    }
+
+
+    @ApiOperation("Request client certificate")
+    @ResponseStatus(HttpStatus.OK)
+    @GetMapping(value = "/certificate")
+    @PreAuthorize("hasAuthority('client_operation')")
+    public Response getClientCertificate(@AuthenticationPrincipal UserDetails principal) throws CertificateGenerateException, IOException {
+        PKCS12PfxPdu newCertificate = certificateService.generateNewClientCertificate((ClientAccount) principal);
+        return new Response()
+                .addResponse("client_id", ((ClientAccount) principal).getId())
+                .addResponse("PSCK12_certificate", Base64.toBase64String(newCertificate.getEncoded()));
     }
 }

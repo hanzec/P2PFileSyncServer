@@ -19,16 +19,14 @@ public class Permission implements GrantedAuthority {
     private Integer id;
 
     @Getter
-    @Setter
     @NotNull
     @Column(name = "NAME")
-    private String name;
+    private final String name;
 
     @Getter
-    @Setter
     @NotNull
     @Column(name = "DESCRIPTION")
-    private String description;
+    private final String description;
 
     public Permission(){
         this("DEFAULT NAME");

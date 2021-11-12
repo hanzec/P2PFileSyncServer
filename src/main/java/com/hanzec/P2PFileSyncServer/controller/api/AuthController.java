@@ -9,6 +9,7 @@ import com.hanzec.P2PFileSyncServer.model.api.RegisterUserRequest;
 import com.hanzec.P2PFileSyncServer.model.api.Response;
 import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
 import com.hanzec.P2PFileSyncServer.service.CertificateService;
+import com.nimbusds.jose.JOSEException;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -57,10 +58,9 @@ public class AuthController {
     @PostMapping(value = "/register_client")
     @ApiOperation("Used for register new account")
     @ResponseStatus(HttpStatus.CREATED)
-    public Response register_client(@RequestBody @Validated RegisterClientRequest client) throws CertificateGenerateException, IOException {
+    public Response register_client(@RequestBody @Validated RegisterClientRequest client) throws CertificateGenerateException, IOException, JOSEException {
         //Trying to Register new Account to Server
         Pair<ClientAccount,Integer> newClient = accountService.createNewClient(client);
-        PKCS12PfxPdu newCertificate = certificateService.generateNewClientCertificate(newClient.getFirst());
 
         // generate client active link
         String path = "/api/v1/client/" + newClient.getFirst().getId() + "/enable?timestamp=" + System.currentTimeMillis() / 1000L;
@@ -70,7 +70,7 @@ public class AuthController {
                 .addResponse("client_id", newClient.getFirst().getId())
                 .addResponse("enable_url", path + "&sig=" + sig)
                 .addResponse("register_code", newClient.getSecond())
-                .addResponse("PSCK12_certificate", Base64.toBase64String(newCertificate.getEncoded()));
+                .addResponse("login_token", accountService.generateClientToken(newClient.getFirst()));
     }
 
     @ResponseBody

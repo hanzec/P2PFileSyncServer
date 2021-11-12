@@ -12,6 +12,7 @@ import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.time.ZonedDateTime;
+import java.util.UUID;
 
 @MappedSuperclass
 public abstract class AbstractAccount implements UserDetails, Serializable {
@@ -19,6 +20,11 @@ public abstract class AbstractAccount implements UserDetails, Serializable {
     @Id @Column(name = "ID")
     @GeneratedValue(generator = "uuid2")
     private String id;
+
+
+    @Getter
+    @Column(name = "jwt_key")
+    private String jwtKey;
 
     @NotNull
     @Column(name = "account_type")
@@ -47,6 +53,7 @@ public abstract class AbstractAccount implements UserDetails, Serializable {
 
     public AbstractAccount(IAccountType accountType){
         this.accountType = accountType;
+        this.jwtKey = UUID.randomUUID().toString();
     }
 
     @Override

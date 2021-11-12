@@ -100,17 +100,20 @@ public class SpringBootConfiguration {
         return new Pbkdf2PasswordEncoder();
     }
 
+    @Bean
+    public Gson getGsonInstance(){
+        return new GsonBuilder()
+                .excludeFieldsWithoutExposeAnnotation()
+                .registerTypeAdapter(ZonedDateTime.class, new GsonZonedDateTimeConverter())
+                .create();
+    }
     /**
      * Gson's configuration in order to use gson as serializer
      */
     @Bean
-    public GsonHttpMessageConverter gsonHttpMessageConverter() {
+    public GsonHttpMessageConverter gsonHttpMessageConverter(Gson gson) {
         GsonHttpMessageConverter converter = new GsonHttpMessageConverter();
-        converter.setGson(
-                new GsonBuilder()
-                        .excludeFieldsWithoutExposeAnnotation()
-                        .registerTypeAdapter(ZonedDateTime.class, new GsonZonedDateTimeConverter())
-                        .create());
+        converter.setGson(gson);
         return converter;
     }
 }

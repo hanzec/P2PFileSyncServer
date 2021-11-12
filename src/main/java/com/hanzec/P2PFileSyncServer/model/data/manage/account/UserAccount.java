@@ -2,7 +2,6 @@ package com.hanzec.P2PFileSyncServer.model.data.manage.account;
 
 import com.hanzec.P2PFileSyncServer.constant.IAccountType;
 import com.hanzec.P2PFileSyncServer.model.data.manage.AbstractAccount;
-import com.hanzec.P2PFileSyncServer.model.data.manage.Group;
 import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.Permission;
 import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserToken;
 import lombok.Getter;
@@ -42,7 +41,7 @@ public class UserAccount extends AbstractAccount {
 
     @Getter
     @ManyToMany
-    private final Set<Group> groups = new HashSet<>();
+    private final Set<UserGroup> userGroups = new HashSet<>();
 
     @Getter
     @OneToMany(
@@ -74,29 +73,28 @@ public class UserAccount extends AbstractAccount {
         this.enableAccount(); // by default user account is automatic active when register
     }
 
-    public UserAccount(String email, String name, String password,Group group){
+    public UserAccount(String email, String name, String password, UserGroup userGroup){
         this(email, name, password);
-        this.groups.add(group);
+        this.userGroups.add(userGroup);
     }
 
-    public UserAccount(String email, String name, String password,Group group, Permission permission){
+    public UserAccount(String email, String name, String password, UserGroup userGroup, Permission permission){
         this(email, name, password);
-        this.groups.add(group);
+        this.userGroups.add(userGroup);
         this.permissions.add(permission);
     }
 
-    public UserAccount(String email, String name, String password,Set<Group> groups){
+    public UserAccount(String email, String name, String password,Set<UserGroup> userGroups){
         this(email, name, password);
-        this.groups.addAll(groups);
+        this.userGroups.addAll(userGroups);
     }
 
     @Override
     public Collection<GrantedAuthority> getAuthorities() {
-        Set<GrantedAuthority> result_permission = new HashSet<>();
+        Set<GrantedAuthority> result_permission = new HashSet<>(permissions);
 
-        groups.parallelStream().forEach(group -> {
-            result_permission.addAll(group.getPermissions());
-
+        userGroups.parallelStream().forEach(userGroup -> {
+            result_permission.addAll(userGroup.getPermissions());
         });
         return result_permission;
     }

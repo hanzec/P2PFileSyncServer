@@ -1,59 +1,47 @@
 package com.hanzec.P2PFileSyncServer.model.data.manage;
 
+import com.google.gson.annotations.Expose;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
-import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.Permission;
 import lombok.Getter;
 import lombok.Setter;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-
-import org.springframework.security.core.GrantedAuthority;
-
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-@Entity
-@Table(
-        name ="USER_ROLE",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = "NAME")
-        })
-public class Group implements Serializable {
+
+@MappedSuperclass
+public abstract class AbstractGroup implements Serializable{
     @Getter
+    @Expose
     @Id @Column(name = "ID")
     @GeneratedValue(strategy=GenerationType.AUTO)
     private Integer id;
 
+    @Expose
     @Setter
     @NotNull
     @Column(name = "NAME")
     private String name;
 
+    @Expose
     @Getter
     @Setter
     @NotNull
     @Column(name = "DESCRIPTION")
     private String description;
 
-    @Getter
-    @ManyToMany
-    private final Set<UserAccount> roleAccount = new HashSet<>();
-
-    @Getter
-    @JoinTable()
-    @ManyToMany(targetEntity = Permission.class)
-    private final Set<GrantedAuthority> permissions = new HashSet<>();
-
-    public Group(){
+    public AbstractGroup(){
         this("DEFAULT_NAME");
     }
 
-    public Group(String name){
+    public AbstractGroup(String name){
         this(name,"DEFAULT_DESCRIPTION");
     }
 
-    public Group(String name, String description){
+    public AbstractGroup(String name, String description){
         this.name = name;
         this.description = description;
     }
