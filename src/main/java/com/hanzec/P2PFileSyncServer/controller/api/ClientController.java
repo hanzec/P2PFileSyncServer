@@ -8,6 +8,7 @@ import com.hanzec.P2PFileSyncServer.service.AccountService;
 import com.hanzec.P2PFileSyncServer.service.CertificateService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.pkcs.PKCS12PfxPdu;
 import org.bouncycastle.util.encoders.Base64;
 import org.springframework.http.HttpStatus;
@@ -16,8 +17,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.security.Principal;
+import java.util.Arrays;
 
 @RestController
 @RequestMapping("/api/v1/client")
@@ -80,8 +84,11 @@ public class ClientController {
     @PreAuthorize("hasAuthority('client_operation')")
     public Response getClientCertificate(@AuthenticationPrincipal UserDetails principal) throws CertificateGenerateException, IOException {
         PKCS12PfxPdu newCertificate = certificateService.generateNewClientCertificate((ClientAccount) principal);
+        OutputStream stream = new FileOutputStream("./client.p12");
+        stream.write(newCertificate.getEncoded(ASN1Encoding.DL));
+        stream.close();
         return new Response()
                 .addResponse("client_id", ((ClientAccount) principal).getId())
-                .addResponse("PSCK12_certificate", Base64.toBase64String(newCertificate.getEncoded()));
+                .addResponse("PSCK12_certificate", Base64.toBase64String(newCertificate.getEncoded(ASN1Encoding.DL)));
     }
 }

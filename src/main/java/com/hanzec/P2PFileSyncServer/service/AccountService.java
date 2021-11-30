@@ -285,7 +285,7 @@ public class AccountService implements UserDetailsService {
 
     private void initializeUserAccount() {
         //Set up admin account if there is not
-        if (!userGroupRepository.existsByName("ROLE_ADMIN")) {
+        if (userGroupRepository.existsByName("ROLE_ADMIN") && !userAccountRepository.existsByEmail("admin@example.com")) {
             UserAccount userAccount = new UserAccount(
                     "admin@example.com",
                     "admin",

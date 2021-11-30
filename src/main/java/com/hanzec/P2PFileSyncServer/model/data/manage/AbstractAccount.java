@@ -32,16 +32,16 @@ public abstract class AbstractAccount implements UserDetails, Serializable {
     private IAccountType accountType;
 
     @Column(name = "locked")
-    private boolean locked = true;
+    private boolean locked = false;
 
     @Column(name = "expired")
-    private boolean expired = true;
+    private boolean expired = false;
 
     @Column(name = "enabled")
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     @Column(name = "credential_expired")
-    private boolean credential_expired = true;
+    private boolean credential_expired = false;
 
     @CreationTimestamp
     @Column(name = "create_time", columnDefinition="TIMESTAMP")

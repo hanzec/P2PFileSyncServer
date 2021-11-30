@@ -9,6 +9,8 @@ import com.hanzec.P2PFileSyncServer.model.api.Response;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,11 +29,11 @@ public class UserController {
     }
 
     @ResponseBody
-    @GetMapping(value = "/")
+    @GetMapping(value = "")
     @ApiOperation("Get user information")
     @PreAuthorize("hasAuthority('user_details')")
-    public Response getUserInformation(Principal principal){
-        UserAccount userAccount = (UserAccount) accountService .loadUserByUsername(principal.getName());
+    public Response getUserInformation(@AuthenticationPrincipal UserDetails principal){
+        UserAccount userAccount = (UserAccount) principal;
 
         return new Response()
                 .addResponse("email", userAccount.getEmail())

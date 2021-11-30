@@ -1,8 +1,9 @@
-FROM azul/zulu-openjdk-alpine:16-jre
+FROM azul/zulu-openjdk-alpine:16-jre as builder
+
 MAINTAINER Hanze Chen
 
 # expose port app uses
-EXPOSE 8080/tcp
+EXPOSE 80/tcp
 
 RUN addgroup sync_disk
 RUN adduser -s /bin/false       \

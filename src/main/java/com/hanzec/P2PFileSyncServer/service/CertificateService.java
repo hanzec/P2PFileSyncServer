@@ -263,7 +263,7 @@ public class CertificateService {
                             getClientSignCertificate(), clientAccount.getIpAddress(), clientAccount.getMachineID(), clientSigner),
                     clientSignCertificate[0], clientSignCertificate[1]};
 
-            ret = PKCS12CertificateUtils.generatePKCS12Certificate(chain, keyPair, null);
+            ret = PKCS12CertificateUtils.generatePKCS12Certificate(chain, clientAccount.getId(),keyPair);
         } catch (NoSuchAlgorithmException | CertificateException | SignatureException | OperatorCreationException | NoSuchProviderException | IOException | PKCSException | InvalidKeyException | InvalidAlgorithmParameterException e){
             e.printStackTrace();
             throw new CertificateGenerateException(e);

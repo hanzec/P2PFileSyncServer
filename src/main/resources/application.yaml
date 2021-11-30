@@ -7,7 +7,7 @@ spring:
       repositories:
         enabled: false
   redis:
-    host: redis
+    host: 127.0.0.1
     port: 6379
     timeout: 3s
   jpa:
@@ -28,13 +28,13 @@ spring:
   datasource:
     user:
       driver-class-name: org.postgresql.Driver
-      jdbc-url: jdbc:postgresql://postgres:5432/p2p_sync_disk_user
+      jdbc-url: jdbc:postgresql://127.0.0.1:5432/p2p_sync_disk_user
     file:
       driver-class-name: org.postgresql.Driver
-      jdbc-url: jdbc:postgresql://postgres:5432/p2p_sync_disk_file
+      jdbc-url: jdbc:postgresql://127.0.0.1:5432/p2p_sync_disk_file
     certificate:
       driver-class-name: org.postgresql.Driver
-      jdbc-url: jdbc:postgresql://postgres:5432/p2p_sync_disk_certificate
+      jdbc-url: jdbc:postgresql://127.0.0.1:5432/p2p_sync_disk_certificate
   mvc:
     converters:
       preferred-json-mapper: gson

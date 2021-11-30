@@ -76,9 +76,6 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .antMatchers("/error")
                 .antMatchers("/index.html")
                 .antMatchers("/client_sign_root.crt")
-                .antMatchers("/api/v1/password_login")
-                .antMatchers("/api/v1/register_user")
-                .antMatchers("/api/v1/register_client")
                 .antMatchers("/swagger**/**", "/webjars/**", "/v3/**", "/doc.html");
     }
 
@@ -87,6 +84,10 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
         http
                 .authorizeRequests()
                 .antMatchers("/login").permitAll()
+                .antMatchers("/api/v1/login").permitAll()
+                .antMatchers("/api/v1/password_login").permitAll()
+                .antMatchers("/api/v1/register_user").permitAll()
+                .antMatchers("/api/v1/register_client").permitAll()
                 .anyRequest().authenticated();
 
         //disable csrf protection for post return 403
@@ -95,7 +96,24 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
         //logout configuration
         http
-                .logout();
+                .logout()
+                .logoutUrl("/logout")
+                .deleteCookies("JSESSIONID");
+
+//        // remember me configuration
+//        http
+//                .rememberMe()
+//                .key("remember-me-key")
+//                .rememberMeParameter("remember-me")
+//                .tokenValiditySeconds(60 * 60 * 24 * 7)
+//                .userDetailsService(accountService)
+//                .rememberMeCookieName("remember-me-cookie");
+//
+//        // session configuration
+//        http
+//                .sessionManagement()
+//                .invalidSessionUrl("/session/invalid");
+
 
         // add custom filters
         http.addFilterAt(new ClientLoginFilter(gson, authenticationManagerBean()), UsernamePasswordAuthenticationFilter.class);
@@ -104,6 +122,7 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
         http
                 .formLogin()
                 .loginPage("/login")
+                .loginProcessingUrl("/api/v1/login")
                 .usernameParameter("email")
                 .passwordParameter("password")
                 // switch back to original page
@@ -111,9 +130,11 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
                     response.setContentType("application/json;charset=utf-8");
                     RequestCache cache = new HttpSessionRequestCache();
                     SavedRequest savedRequest = cache.getRequest(request, response);
-                    String url = savedRequest.getRedirectUrl();
-
-                    response.sendRedirect(url);
+                    if (savedRequest != null) {
+                        response.sendRedirect(savedRequest.getRedirectUrl());
+                    } else {
+                        response.sendRedirect("/loginSuccess");
+                    }
                 })
                 .permitAll();
     }
