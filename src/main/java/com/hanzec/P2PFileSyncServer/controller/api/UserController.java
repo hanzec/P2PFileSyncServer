@@ -37,7 +37,19 @@ public class UserController {
 
         return new Response()
                 .addResponse("email", userAccount.getEmail())
-                .addResponse("username", userAccount.getName());
+                .addResponse("username", userAccount.getName())
+                .addResponse("user_group", userAccount.getUserGroups());
+    }
+
+    @ResponseBody
+    @GetMapping(value = "/groups")
+    @ApiOperation("Get user information")
+    @PreAuthorize("hasAuthority('user_details')")
+    public Response getUserGroups(@AuthenticationPrincipal UserDetails principal){
+        UserAccount userAccount = (UserAccount) principal;
+
+        return new Response()
+                .addResponse("user_group", userAccount.getUserGroups());
     }
 
     @ResponseBody

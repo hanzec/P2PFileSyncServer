@@ -33,7 +33,7 @@ public class FileService {
         this.fileDatabaseRepository = fileDatabaseRepository;
     }
 
-    public String propose_new_commit(String path){
+    public String addNewFile(String path){
         return UUID.randomUUID().toString();
     }
 }

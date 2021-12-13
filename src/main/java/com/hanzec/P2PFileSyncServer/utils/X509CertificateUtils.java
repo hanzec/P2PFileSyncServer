@@ -21,6 +21,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -52,21 +53,21 @@ public class X509CertificateUtils {
     /**
      * Methods for generating new X509Certificate
      *
-     * @param notAfter         available dates for certificates
-     * @param notBefore        expire dates for certificates
-     * @param subject          the subject of certificates
-     * @param pubKey          the generated private/public keypair
-     * @param caCert         the certificate which will sign the current generated certificate
-     * @param caSigner the private key of certificate which will sign the current generated certificate
-     * @param ipAddress        the ip address which will put to GeneralName.iPAddress under subjectAlternativeName section
-     * @param machineID        the machine id which will put to GeneralName.uniformResourceIdentifier under subjectAlternativeName section
-     * @param keyUsage         list of usage which will used for this certificates
+     * @param notAfter  available dates for certificates
+     * @param notBefore expire dates for certificates
+     * @param subject   the subject of certificates
+     * @param pubKey    the generated private/public keypair
+     * @param caCert    the certificate which will sign the current generated certificate
+     * @param caSigner  the private key of certificate which will sign the current generated certificate
+     * @param ipAddress the ip address which will put to GeneralName.iPAddress under subjectAlternativeName section
+     * @param machineID the machine id which will put to GeneralName.uniformResourceIdentifier under subjectAlternativeName section
+     * @param keyUsage  list of usage which will used for this certificates
      * @return the final generated X509Certificate, note that will NULL if generating FAILED
-     * @throws NoSuchAlgorithmException  if no such algorithm
-     * @throws CertIOException           if certificate not exist
-     * @throws CertificateException      if certificate error
-     * @throws SignatureException        if signature error
-     * @throws NoSuchProviderException   if no such provider
+     * @throws NoSuchAlgorithmException if no such algorithm
+     * @throws CertIOException          if certificate not exist
+     * @throws CertificateException     if certificate error
+     * @throws SignatureException       if signature error
+     * @throws NoSuchProviderException  if no such provider
      * @apiNote if one of the @param machineID or @param ipAddress is null then both fields will not insert to final certificates
      */
     public static X509Certificate generateSignedX509Certificate(Date notAfter, Date notBefore, X500Name subject,
@@ -100,11 +101,17 @@ public class X509CertificateUtils {
                 extUtils.createAuthorityKeyIdentifier(caCert));
 
         // Add DNS name is cert is to used for SSL
-        if (ipAddress != null && machineID != null)
-            issuedCertBuilder.addExtension(Extension.subjectAlternativeName, false, new DERSequence(new ASN1Encodable[]{
-                    new GeneralName(GeneralName.iPAddress, ipAddress),
-                    new GeneralName(GeneralName.uniformResourceIdentifier, machineID),
-            }));
+        if (ipAddress != null && machineID != null) {
+            ArrayList<ASN1Encodable> generalNames = new ArrayList<>();
+            var ipAddressList = ipAddress.split(",");
+
+            for (var ip : ipAddressList) {
+                generalNames.add(new GeneralName(GeneralName.iPAddress, ip));
+            }
+
+            generalNames.add(new GeneralName(GeneralName.uniformResourceIdentifier, machineID));
+            issuedCertBuilder.addExtension(Extension.subjectAlternativeName, false, new DERSequence(generalNames.toArray(new ASN1Encodable[0])));
+        }
 
 
         X509Certificate cert = new JcaX509CertificateConverter().setProvider("BC").getCertificate(issuedCertBuilder.build(caSigner));

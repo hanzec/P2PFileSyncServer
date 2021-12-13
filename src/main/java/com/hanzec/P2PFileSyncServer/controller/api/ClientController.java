@@ -44,6 +44,7 @@ public class ClientController {
         accountService.enableClient(clientID,  principal.getUsername());
     }
 
+
     @ApiOperation("Request current client information")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping(value = "")

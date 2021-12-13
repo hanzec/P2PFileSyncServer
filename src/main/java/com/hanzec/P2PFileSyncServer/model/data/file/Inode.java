@@ -10,9 +10,13 @@ import java.util.Set;
 
 
 @Entity
-@Table(name = "inode")
+@Table(name = "inode",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "inode_path")
+        })
 public class Inode {
-    @Id @Column(name = "inode_path")
+    @Id
+    @Column(name = "inode_path")
     private String path;
 
     @Getter
@@ -35,11 +39,11 @@ public class Inode {
 
     @ManyToOne
     @JoinColumn(
-            name="parent_inode",
+            name = "parent_inode",
             referencedColumnName = "inode_path"
     )
     private Inode parentInode;
 
-    @OneToMany(mappedBy="path",cascade={CascadeType.ALL})
+    @OneToMany(mappedBy = "path", cascade = {CascadeType.ALL})
     private Set<Inode> subInode = new HashSet<>();
 }
