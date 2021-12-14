@@ -106,7 +106,8 @@ public class X509CertificateUtils {
             var ipAddressList = ipAddress.split(",");
 
             for (var ip : ipAddressList) {
-                generalNames.add(new GeneralName(GeneralName.iPAddress, ip));
+                var tmp = ip.split(":");
+                generalNames.add(new GeneralName(GeneralName.iPAddress, tmp[0]));
             }
 
             generalNames.add(new GeneralName(GeneralName.uniformResourceIdentifier, machineID));
