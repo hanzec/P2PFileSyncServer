@@ -3,7 +3,6 @@ package com.hanzec.P2PFileSyncServer.service;
 import com.hanzec.P2PFileSyncServer.config.params.CACertificateConfigParams;
 import com.hanzec.P2PFileSyncServer.config.params.ClientCertificateConfigParams;
 import com.hanzec.P2PFileSyncServer.config.params.GeneralCertificateConfigParams;
-import com.hanzec.P2PFileSyncServer.config.params.TrueStoreConfigParams;
 import com.hanzec.P2PFileSyncServer.model.data.certificate.ClientCertificate;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
 import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
@@ -11,7 +10,6 @@ import com.hanzec.P2PFileSyncServer.repository.certificate.ClientCertificateRepo
 import com.hanzec.P2PFileSyncServer.utils.ByteArrayUtil;
 import com.hanzec.P2PFileSyncServer.utils.PKCS12CertificateUtils;
 import com.hanzec.P2PFileSyncServer.utils.X509CertificateUtils;
-import io.lettuce.core.StrAlgoArgs;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.jcajce.JcaCertStore;
@@ -28,16 +26,11 @@ import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.pkcs.PKCS12PfxPdu;
 import org.bouncycastle.pkcs.PKCSException;
-import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.util.ByteUtils;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriBuilder;
 
 import java.io.*;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,10 +39,7 @@ import java.security.*;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Objects;
 
 import static com.hanzec.P2PFileSyncServer.utils.ByteArrayUtil.ByteArrayToHex;
@@ -68,32 +58,31 @@ public class CertificateService {
     private final GeneralCertificateConfigParams generalCertificateConfigParams;
     private final Logger logger = LoggerFactory.getLogger(CertificateService.class);
 
-    CertificateService(TrueStoreConfigParams params,
-                       CACertificateConfigParams caCertificateConfigParams,
+    CertificateService(CACertificateConfigParams caCertificateConfigParams,
                        ClientCertificateRepository clientCertificateRepository,
                        ClientCertificateConfigParams clientCertificateConfigParams,
                        GeneralCertificateConfigParams generalCertificateConfigParams) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, OperatorCreationException, UnrecoverableEntryException, SignatureException, IOException, InvalidKeyException {
-        Path truthStoragePath = Paths.get(params.getTrustStorePath());
+        String truthStoragePath = System.getProperty("javax.net.ssl.trustStore");
         this.clientCertificateRepository = clientCertificateRepository;
         this.clientCertificateConfigParams = clientCertificateConfigParams;
         this.generalCertificateConfigParams = generalCertificateConfigParams;
 
         Security.addProvider(new BouncyCastleProvider());
         KeyStore keys = KeyStore.getInstance("BKS", "BC");
-        var password = new KeyStore.PasswordProtection(params.getTrustStorePassword().toCharArray());
+        var password = new KeyStore.PasswordProtection(System.getProperty("javax.net.ssl.trustStorePassword").toCharArray());
 
         // if key store file not existed
         try {
-            keys.load(new FileInputStream(truthStoragePath.toAbsolutePath().toString()), params.getTrustStorePassword().toCharArray());
-            logger.info("loading certificate from [" + truthStoragePath.toAbsolutePath() + "]");
+            keys.load(new FileInputStream(truthStoragePath), System.getProperty("javax.net.ssl.trustStorePassword").toCharArray());
+            logger.info("loading certificate from [" + truthStoragePath + "]");
         } catch (IOException e) {
             // if keyStore not found then need to do load first
             keys.load(null, null);
 
             // if folders not existed
-            if(!Files.exists(truthStoragePath)){
-                Files.createDirectories(truthStoragePath.getParent());
-                logger.warn("truth store folder not found in [" + truthStoragePath.toAbsolutePath() + "], will create instead!");
+            if(!Files.exists(Paths.get(truthStoragePath))){
+                Files.createDirectories(Paths.get(truthStoragePath).getParent());
+                logger.warn("truth store folder not found in [" + truthStoragePath + "], will create instead!");
             }
         }
 
@@ -209,7 +198,7 @@ public class CertificateService {
         logger.debug(caCertificateConfigParams.getClientSignCertificateSubject() + ": \n " + getClientSignCertificate().toString());
 
         // saving keystore file to disk
-        keys.store(new FileOutputStream(truthStoragePath.toAbsolutePath().toString()), params.getTrustStorePassword().toCharArray());
+        keys.store(new FileOutputStream(truthStoragePath), System.getProperty("javax.net.ssl.trustStorePassword").toCharArray());
     }
 
 

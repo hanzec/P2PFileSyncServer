@@ -1,11 +1,11 @@
-package com.hanzec.P2PFileSyncServer.controller.api;
+package com.hanzec.P2PFileSyncServer.controller.api.v1;
 
 import com.hanzec.P2PFileSyncServer.model.api.Response;
 import com.hanzec.P2PFileSyncServer.model.data.manage.authenticate.UserToken;
 import com.hanzec.P2PFileSyncServer.model.exception.auth.TokenNotFoundException;
 import com.hanzec.P2PFileSyncServer.service.TokenService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/token")
-@Api(tags = "RestAPI related user token Managerment")
+@Tag(name = "RestAPI related user token Management")
 public class TokenController {
     final TokenService tokenService;
     /*
@@ -27,7 +27,7 @@ public class TokenController {
 
     @ResponseBody
     @GetMapping(value = "/")
-    @ApiOperation("get All existed token")
+    @Operation(summary = "get All existed token")
     @PreAuthorize("hasAuthority('modify_credential')")
     public Response getAllToken(Principal principal){
         Response response = new Response();
@@ -38,7 +38,7 @@ public class TokenController {
 
     @ResponseBody
     @DeleteMapping(value = "/{tokenID}")
-    @ApiOperation("delete current login Token")
+    @Operation(summary = "delete current login Token")
     @PreAuthorize("hasAuthority('modify_credential')")
     public Response revokeToken(Principal principal,
                                 @PathVariable String tokenID) throws TokenNotFoundException {

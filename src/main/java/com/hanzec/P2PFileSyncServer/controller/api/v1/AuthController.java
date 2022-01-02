@@ -1,22 +1,16 @@
-package com.hanzec.P2PFileSyncServer.controller.api;
+package com.hanzec.P2PFileSyncServer.controller.api.v1;
 
 import com.hanzec.P2PFileSyncServer.model.api.RegisterClientRequest;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
-import com.hanzec.P2PFileSyncServer.model.exception.auth.PasswordNotMatchException;
-import com.hanzec.P2PFileSyncServer.model.api.LoginRequest;
 import com.hanzec.P2PFileSyncServer.model.api.RegisterUserRequest;
 import com.hanzec.P2PFileSyncServer.model.api.Response;
 import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
 import com.hanzec.P2PFileSyncServer.service.CertificateService;
 import com.nimbusds.jose.JOSEException;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
 
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.pkcs.PKCS12PfxPdu;
-import org.bouncycastle.pkcs.PKCSException;
-import org.bouncycastle.util.encoders.Base64;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.util.Pair;
@@ -30,14 +24,10 @@ import com.hanzec.P2PFileSyncServer.service.AccountService;
 import com.hanzec.P2PFileSyncServer.service.TokenService;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
-import java.security.cert.CertificateException;
 
 @RestController
 @RequestMapping("/api/v1")
-@Api(tags = "RestAPI Related Registration")
+@Tag(name = "RestAPI Related Registration")
 public class AuthController {
     private final TokenService tokenService;
     private final AccountService accountService;
@@ -56,11 +46,11 @@ public class AuthController {
 
     @ResponseBody
     @PostMapping(value = "/register_client")
-    @ApiOperation("Used for register new account")
+    @Operation(summary = "Used for register new account")
     @ResponseStatus(HttpStatus.CREATED)
     public Response register_client(@RequestBody @Validated RegisterClientRequest client) throws CertificateGenerateException, IOException, JOSEException {
         //Trying to Register new Account to Server
-        Pair<ClientAccount,Integer> newClient = accountService.createNewClient(client);
+        Pair<ClientAccount, Integer> newClient = accountService.createNewClient(client);
 
         // generate client active link
         String path = "/api/v1/client/" + newClient.getFirst().getId() + "/enable?timestamp=" + System.currentTimeMillis() / 1000L;
@@ -75,9 +65,9 @@ public class AuthController {
 
     @ResponseBody
     @PostMapping(value = "/register_account")
-    @ApiOperation("Used for register new account")
+    @Operation(summary = "Used for register new account")
     @ResponseStatus(HttpStatus.CREATED)
-    public Response register_account(@RequestBody @Validated RegisterUserRequest user){
+    public Response register_account(@RequestBody @Validated RegisterUserRequest user) {
         //Trying to Register new Account to Server
         UserAccount newUser = accountService.createUser(user);
         return new Response().addResponse("user_id", newUser.getId());

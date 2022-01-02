@@ -3,6 +3,7 @@ package com.hanzec.P2PFileSyncServer.controller.webpage;
 import com.hanzec.P2PFileSyncServer.model.api.Response;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import com.hanzec.P2PFileSyncServer.service.AccountService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.io.IOException;
 
 @Controller
+@Tag(name = "Login Controller", description = "login in related webpages")
 public class LoginController {
     private final AccountService accountService;
 

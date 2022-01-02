@@ -1,14 +1,9 @@
 package com.hanzec.P2PFileSyncServer.model.security;
 
 import com.google.gson.annotations.Expose;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
-
-import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.UUID;
 
@@ -21,22 +16,22 @@ public class JwtPayload {
     }
 
     @Expose
-    @ApiModelProperty("expire time")
+    @Schema(description = "expire time")
     private Date exp;
 
     @Expose
-    @ApiModelProperty("client id")
+    @Schema(description = "client id")
     private String clientID;
 
     @Expose
-    @ApiModelProperty("issue time")
+    @Schema(description = "issue time")
     private Date iat = new Date();
 
     @Expose
-    @ApiModelProperty("subject")
+    @Schema(description = "subject")
     private String sub = "SIGNED FOR CLIENT LOGIN";
 
     @Expose
-    @ApiModelProperty("JWT id")
+    @Schema(description = "JWT id")
     private String jti = UUID.randomUUID().toString();
 }

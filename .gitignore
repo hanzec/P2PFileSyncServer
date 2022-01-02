@@ -20,6 +20,8 @@ build/
 .gradle
 
 ### IntelliJ IDEA ###
+.jpb
+.run
 .idea
 *.iws
 *.iml

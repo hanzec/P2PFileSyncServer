@@ -59,5 +59,20 @@
       "name": "spring.datasource.certificate.jdbc-url",
       "type": "java.lang.String",
       "description": "Description for spring.datasource.certificate.jdbc-url."
+    },
+    {
+      "name": "spring.datasource.user.username",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.user.username."
+    },
+    {
+      "name": "spring.datasource.user.password",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.user.password."
+    },
+    {
+      "name": "springdoc.version",
+      "type": "java.lang.String",
+      "description": "Description for springdoc.version."
     }
   ] }

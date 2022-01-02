@@ -1,19 +1,18 @@
 package com.hanzec.P2PFileSyncServer.model.api;
 
-import lombok.Data;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 import java.util.HashMap;
 import java.time.ZonedDateTime;
 
 import com.google.gson.annotations.Expose;
-import io.swagger.annotations.ApiModel;
 import lombok.Getter;
 import lombok.Setter;
 
 
 @Getter
 @Setter
-@ApiModel
+@Schema(description = "General response object")
 public class Response {
     @Expose
     private String message;

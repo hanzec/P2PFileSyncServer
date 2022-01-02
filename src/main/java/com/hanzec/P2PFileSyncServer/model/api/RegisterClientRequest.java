@@ -2,15 +2,14 @@ package com.hanzec.P2PFileSyncServer.model.api;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
-import io.swagger.annotations.ApiModel;
-import lombok.Data;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
 
 @Getter
-@ApiModel
+@Schema(description = "Request to register a client")
 public class RegisterClientRequest {
     @Expose
     @SerializedName("ip")

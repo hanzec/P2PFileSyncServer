@@ -1,7 +1,16 @@
 server:
   port: 80
 
+springdoc:
+  version: '@springdoc.version@'
+  swagger-ui:
+    use-root-path: true
+  paths-to-match: /api/**
+  packagesToScan: com.hanzec.P2PFileSyncServer.controller
+
 spring:
+  cache:
+    type: redis
   data:
     redis:
       repositories:
@@ -17,9 +26,10 @@ spring:
           auto: update
         cache:
           region:
+            factory_class: jcache
             use_second_level_cache: true
-            region.factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
-            use_query_cache: true
+          url: file:/META-INF/ehcache.xml
+          provider: org.hibernate.cache.jcache.JCacheRegionFactory
         ddl-auto: update
         default_schema: public
         enable_lazy_load_no_trans: true
@@ -28,12 +38,18 @@ spring:
   datasource:
     user:
       driver-class-name: org.postgresql.Driver
+      username: ${DATA_BASE_USERNAME:sync_disk}
+      password: ${DATA_BASE_PASSWORD:asdzxc456123}
       jdbc-url: jdbc:postgresql://127.0.0.1:5432/p2p_sync_disk_user
     file:
       driver-class-name: org.postgresql.Driver
+      username: ${DATA_BASE_USERNAME:sync_disk}
+      password: ${DATA_BASE_PASSWORD:asdzxc456123}
       jdbc-url: jdbc:postgresql://127.0.0.1:5432/p2p_sync_disk_file
     certificate:
       driver-class-name: org.postgresql.Driver
+      username: ${DATA_BASE_USERNAME:sync_disk}
+      password: ${DATA_BASE_PASSWORD:asdzxc456123}
       jdbc-url: jdbc:postgresql://127.0.0.1:5432/p2p_sync_disk_certificate
   mvc:
     converters:

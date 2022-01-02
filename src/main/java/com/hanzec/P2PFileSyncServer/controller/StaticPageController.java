@@ -2,8 +2,8 @@ package com.hanzec.P2PFileSyncServer.controller;
 
 import com.hanzec.P2PFileSyncServer.service.CertificateService;
 import com.hanzec.P2PFileSyncServer.utils.PEMUtils;
-import io.swagger.annotations.ApiOperation;
-import lombok.SneakyThrows;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.slf4j.Logger;
@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.security.cert.CertificateEncodingException;
 
 @Controller
+@Tag(name = "Static webpage controller", description = "Controller for static webpages")
 public class StaticPageController {
 
     private final byte[] clientSignRootCertificate;
@@ -30,25 +31,26 @@ public class StaticPageController {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @RequestMapping("/test")
-    String test(String request){
+    String test(String request) {
         return request;
     }
 
     @RequestMapping("/testGet")
-    String testGet(){
+    String testGet() {
         return "I am the cySchedule server!";
     }
 
     @RequestMapping("/teapot")
     @ResponseStatus(HttpStatus.I_AM_A_TEAPOT)
-    void teapot(){}
+    void teapot() {
+    }
 
     public StaticPageController(CertificateService certificateService) throws IOException, CertificateEncodingException, OperatorCreationException, CMSException {
         Path client_path = Paths.get("config/client_sign_root.crt");
-        if(Files.isRegularFile(client_path)){
+        if (Files.isRegularFile(client_path)) {
             clientSignRootCertificate = Files.readAllBytes(client_path);
             logger.info("loading client sign certificate from cached file [config/client_sign_root.crt]");
-        }else{
+        } else {
             clientSignRootCertificate = PEMUtils
                     .ConvertPKCS7ToPEMBytes(certificateService.getClientSignPublicCertificate());
             Files.write(client_path, clientSignRootCertificate);
@@ -56,7 +58,7 @@ public class StaticPageController {
         }
     }
 
-    @ApiOperation("Request Server public certifies for signing new client")
+    @Operation(summary = "Request Server public certifies for signing new client")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping(value = "/client_sign_root.crt", produces = MediaType.TEXT_PLAIN_VALUE)
     public void RequestCerts(HttpServletResponse response) throws CertificateEncodingException, OperatorCreationException, CMSException, IOException {

@@ -1,5 +1,6 @@
 package com.hanzec.P2PFileSyncServer.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.security.web.RedirectStrategy;
@@ -17,6 +18,7 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/session")
+@Tag(name = "Session controller", description = "User Management")
 public class SessionController {
     private RequestCache requestCache = new HttpSessionRequestCache();//Spring Security提供的用于缓存请求的对象
 

@@ -1,13 +1,12 @@
-package com.hanzec.P2PFileSyncServer.controller.api;
+package com.hanzec.P2PFileSyncServer.controller.api.v1;
 
 import com.hanzec.P2PFileSyncServer.model.api.Response;
 import com.hanzec.P2PFileSyncServer.model.data.manage.account.ClientAccount;
-import com.hanzec.P2PFileSyncServer.model.data.manage.account.UserAccount;
 import com.hanzec.P2PFileSyncServer.model.exception.certificate.CertificateGenerateException;
 import com.hanzec.P2PFileSyncServer.service.AccountService;
 import com.hanzec.P2PFileSyncServer.service.CertificateService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.pkcs.PKCS12PfxPdu;
 import org.bouncycastle.util.encoders.Base64;
@@ -20,12 +19,10 @@ import org.springframework.web.bind.annotation.*;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.security.Principal;
-import java.util.Arrays;
 
 @RestController
 @RequestMapping("/api/v1/client")
-@Api(tags = "RestAPI Related to manage connected client")
+@Tag(name = "RestAPI Related to manage connected client")
 public class ClientController {
 
     private final AccountService accountService;
@@ -36,7 +33,7 @@ public class ClientController {
         this.certificateService = certificateService;
     }
 
-    @ApiOperation("Activate Registered Client")
+    @Operation(summary = "Activate Registered Client")
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = "/{clientID}/enable")
     @PreAuthorize("hasAuthority('enable_client')")
@@ -45,7 +42,7 @@ public class ClientController {
     }
 
 
-    @ApiOperation("Request current client information")
+    @Operation(summary = "Request current client information")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping(value = "")
     @PreAuthorize("hasAuthority('client_operation')")
@@ -59,7 +56,7 @@ public class ClientController {
     }
 
 
-    @ApiOperation("get the registered devices by registration device")
+    @Operation(summary = "get the registered devices by registration device")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping(value = "/peer")
     @PreAuthorize("hasAuthority('client_operation')")
@@ -69,7 +66,7 @@ public class ClientController {
                 .addResponse("peers", accountService.getClientPeer(account));
     }
 
-    @ApiOperation("get the group information of current device")
+    @Operation(summary = "get the group information of current device")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping(value = "/group")
     @PreAuthorize("hasAuthority('client_operation')")
@@ -79,7 +76,7 @@ public class ClientController {
     }
 
 
-    @ApiOperation("Request client certificate")
+    @Operation(summary = "Request client certificate")
     @ResponseStatus(HttpStatus.OK)
     @GetMapping(value = "/certificate")
     @PreAuthorize("hasAuthority('client_operation')")

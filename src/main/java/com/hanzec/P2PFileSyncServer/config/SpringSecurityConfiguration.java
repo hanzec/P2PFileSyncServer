@@ -75,8 +75,10 @@ public class SpringSecurityConfiguration extends WebSecurityConfigurerAdapter {
         web.ignoring()
                 .antMatchers("/error")
                 .antMatchers("/index.html")
-                .antMatchers("/client_sign_root.crt")
-                .antMatchers("/swagger**/**", "/webjars/**", "/v3/**", "/doc.html");
+                .antMatchers("/swagger-ui/**")
+                .antMatchers("/v3/api-docs/**")
+                .antMatchers("/swagger-ui.html")
+                .antMatchers("/client_sign_root.crt");
     }
 
     @Override
